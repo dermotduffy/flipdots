@@ -1,6 +1,8 @@
 #ifndef HARDWARE_H
 #define HARDWARE_H
 
+//#include "driver/spi_master.h"
+
 // ***********************************************
 // All hardware specific logic belows in this file
 // ***********************************************
@@ -15,7 +17,7 @@
 //                                      +------------------------------------+
 
 #define PIN_TOP_SERIAL_OUT               23 // Serial data out (future: MOSI).
-#define PIN_TOP_SERIAL_CLK               22 // Serial data clock (future: SCLK).
+#define PIN_TOP_SERIAL_CLK               23 // Serial data clock (future: SCLK).
 #define PIN_TOP_SR1_LATCH                18 // Serial latch for SR1 (cols)
 #define PIN_TOP_SR2_LATCH                19 // Serial latch for SR2 (rows+data)
 #define PIN_TOP_ENABLE                   27
@@ -52,19 +54,24 @@
 #define FLIP_ROWS_DATA_BIT               4  // Hard-wired to Rows B0 bit.
 #define FLIP_COLS_DATA_BIT               5
 
+#define SPI_BITBANG                      1
+#define SPI_NATIVE                       2
+#define SPI_MODE                         SPI_BITBANG
+
 typedef enum {
   FLIP_BOARD_TOP,
   FLIP_BOARD_BOTTOM,
 } FlipBoard;
 
 void init_hardware();
-
-// **************************************************
-// Replace these hacks when esp32 SPI driver is ready
-// **************************************************
 void init_spi();
+
+#if SPI_MODE == SPI_BITBANG
 void shift_byte(const uint8_t data_pin, const uint8_t clock_pin,
     const uint8_t latch_pin, uint8_t data);
+#else
+void shift_byte(uint8_t data, spi_device_handle_t* spi_device);
+#endif
 
 // **************************************************
 // Raw writing / physical board translation functions

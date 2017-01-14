@@ -125,8 +125,8 @@ void task_display_update() {
 void app_main(void)
 {
   nvs_flash_init();
-  init_hardware();
   init_spi();
+  init_hardware();
 
   buffer_staging_mutex = xSemaphoreCreateMutex();
   buffer_init(DISPLAY_WIDTH, DISPLAY_HEIGHT, &buffer_live);
