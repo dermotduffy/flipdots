@@ -1,3 +1,7 @@
+// Liberation Sans Font
+// Source: https://fedorahosted.org/liberation-fonts/
+// License: SIL Opem Font License
+
 #include <stdint.h>
 #include "fonts-tdf.h"
 
