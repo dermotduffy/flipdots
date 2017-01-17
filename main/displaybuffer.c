@@ -51,7 +51,7 @@ void buffer_inverse(displaybuffer_t* buffer) {
   buffer->modified = true;
 }
 
-void buffer_draw_character(
+void buffer_bdf2c_draw_char(
     uint8_t x, uint8_t y, char c, const bitmap_font* font,
     displaybuffer_t* buffer) {
   assert(font != NULL);
@@ -71,7 +71,7 @@ void buffer_draw_character(
   buffer->modified = true;
 }
 
-void buffer_draw_string(
+void buffer_bdf2c_draw_string(
     uint8_t x, uint8_t y, const char* s, const bitmap_font* font,
     displaybuffer_t* buffer) {
   assert(x < buffer->width);  
@@ -80,8 +80,55 @@ void buffer_draw_string(
   assert(buffer != NULL);
 
   while (*s != '\0') {
-    buffer_draw_character(x, y, *(s++), font, buffer);
+    buffer_bdf2c_draw_char(x, y, *(s++), font, buffer);
     x += (font->Width+1);
+  }
+}
+
+void buffer_tdf_draw_char(
+    uint8_t x, uint8_t y, char c, const font_info_t* font,
+    displaybuffer_t* buffer) {
+  buffer_tdf_draw_char_info(x, y, font_get_char_info(c, font), font, buffer);
+}
+
+void buffer_tdf_draw_char_info(
+    uint8_t x, uint8_t y,
+    const font_char_info_t* char_info, const font_info_t* font,
+    displaybuffer_t* buffer) {
+  assert(font != NULL);
+  assert(buffer != NULL);
+
+  // Don't assert on missing character to avoid bad input causing issues, just
+  // do nothing instead.
+  if (char_info == NULL) {
+    return;
+  }
+
+  for (int row = 0;
+       row < font->height && (y+row) < buffer->height;
+       ++row) {
+    for (int col = 0;
+         col < char_info->width && (x+col) < buffer->width;
+         ++col) {
+      buffer->data[x+col][y+row] =
+          font_get_pixel(char_info, x+col, y+row, font);
+    }
+  }
+  buffer->modified = true;
+}
+
+void buffer_tdf_draw_string(
+    uint8_t x, uint8_t y, const char* s, const font_info_t* font,
+    displaybuffer_t* buffer) {
+  assert(x < buffer->width);  
+  assert(y < buffer->height);
+  assert(font != NULL);
+  assert(buffer != NULL);
+
+  while (*s != '\0' && x < buffer->width) {
+    const font_char_info_t* char_info = font_get_char_info(*(s++), font);
+    buffer_tdf_draw_char_info(x, y, char_info, font, buffer);
+    x += (char_info->width+1);
   }
 }
 

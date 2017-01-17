@@ -1,5 +1,5 @@
-#ifndef FONTS_H_
-#define FONTS_H_
+#ifndef FONTS_TDF_H_
+#define FONTS_TDF_H_
 
 #include <inttypes.h>
 #include <stdbool.h>
@@ -52,7 +52,7 @@ typedef struct
     
 } font_info_t;
 
-const font_char_info_t* font_get_char_info(uint8_t c, font_info_t* font);
+const font_char_info_t* font_get_char_info(uint8_t c, const font_info_t* font);
 bool font_get_pixel(const font_char_info_t* c, uint8_t x, uint8_t y, const font_info_t* font);
 uint32_t font_get_row(const font_char_info_t* c, uint8_t y, const font_info_t* font);
 

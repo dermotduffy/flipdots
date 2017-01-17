@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "fonts-tdf.h"
 
-const font_char_info_t* font_get_char_info(uint8_t c, font_info_t* font) {
+const font_char_info_t* font_get_char_info(uint8_t c, const font_info_t* font) {
   if (c < font->start_char || c > font->end_char) {
     return NULL;
   } else {

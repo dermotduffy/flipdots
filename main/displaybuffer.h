@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include "flipdots-base.h"
 #include "MatrixFontCommon.h"
+#include "fonts-tdf.h"
 
 typedef struct {
   bool data[DISPLAY_WIDTH][DISPLAY_HEIGHT];
@@ -22,12 +23,26 @@ void buffer_wipe(displaybuffer_t* buffer);
 void buffer_draw_pixel(
     uint8_t x, uint8_t y, bool data, displaybuffer_t* buffer);
 void buffer_inverse(displaybuffer_t* buffer);
-void buffer_draw_character(
+
+// BDF2C based fonts.
+void buffer_bdf2c_draw_char(
     uint8_t x, uint8_t y, char c, const bitmap_font* font,
     displaybuffer_t* buffer);
-void buffer_draw_string(
+void buffer_bdf2c_draw_string(
     uint8_t x, uint8_t y, const char* s, const bitmap_font* font,
     displaybuffer_t* buffer);
+
+// The dot factory based fonts.
+void buffer_tdf_draw_char(
+    uint8_t x, uint8_t y, char c, const font_info_t* font,
+    displaybuffer_t* buffer);
+void buffer_tdf_draw_char_info(
+    uint8_t x, uint8_t y, const font_char_info_t* c, const font_info_t* font,
+    displaybuffer_t* buffer);
+void buffer_tdf_draw_string(
+    uint8_t x, uint8_t y, const char* s, const font_info_t* font,
+    displaybuffer_t* buffer);
+
 void buffer_draw_line(
     uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, bool data,
     displaybuffer_t* buffer);
