@@ -53,3 +53,19 @@ uint32_t font_get_row(
   row <<= (8*(sizeof(uint32_t) - bytes_per_row));
   return row;
 }
+
+int font_get_string_pixel_length(
+    const char* s, int gap_between_chars, const font_info_t* font) {
+
+  int length = 0;
+  while (*s != '\0') {
+    if (length > 0) {
+      length += gap_between_chars;
+    }
+    const font_char_info_t* char_info = font_get_char_info(*s, font);
+    length += char_info->width;
+    s++;
+  }
+
+  return length;
+}

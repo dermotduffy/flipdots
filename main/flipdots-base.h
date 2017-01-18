@@ -9,4 +9,6 @@
 #define DISPLAY_HEIGHT                   (FLIP_BOARD_HEIGHT*2)
 #define DISPLAY_WIDTH                    FLIP_BOARD_WIDTH
 
+#define DISPLAY_PIXELS                   (DISPLAY_HEIGHT*DISPLAY_WIDTH)
+
 #endif

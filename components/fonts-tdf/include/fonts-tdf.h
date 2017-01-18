@@ -52,8 +52,13 @@ typedef struct
     
 } font_info_t;
 
-const font_char_info_t* font_get_char_info(uint8_t c, const font_info_t* font);
-bool font_get_pixel(const font_char_info_t* c, uint8_t x, uint8_t y, const font_info_t* font);
-uint32_t font_get_row(const font_char_info_t* c, uint8_t y, const font_info_t* font);
+const font_char_info_t* font_get_char_info(
+    uint8_t c, const font_info_t* font);
+bool font_get_pixel(
+    const font_char_info_t* c, uint8_t x, uint8_t y, const font_info_t* font);
+uint32_t font_get_row(
+    const font_char_info_t* c, uint8_t y, const font_info_t* font);
+int font_get_string_pixel_length(
+    const char* s, int gap_between_chars, const font_info_t* font);
 
 #endif

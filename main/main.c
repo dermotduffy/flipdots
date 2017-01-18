@@ -15,6 +15,8 @@
 #include "hardware.h"
 #include "graphics_bell.xbm"
 
+#include "mode-clock.h"
+
 #define TASK_DISPLAYBUFFER_UPDATE_NAME        "display-update"
 #define TASK_DISPLAYBUFFER_UPDATE_STACK_WORDS 2<<11
 #define TASK_DISPLAYBUFFER_UPDATE_PRORITY     4
@@ -23,6 +25,10 @@
 #define TASK_DISPLAYBUFFER_UPDATE_WORKER_BOT_NAME    "display-update-worker-bot"
 #define TASK_DISPLAYBUFFER_UPDATE_WORKER_STACK_WORDS 2<<11
 #define TASK_DISPLAYBUFFER_UPDATE_WORKER_PRORITY     5
+
+#define TASK_ORCHESTRATOR_NAME        "orchestrator"
+#define TASK_ORCHESTRATOR_STACK_WORDS 2<<11
+#define TASK_ORCHESTRATOR_PRORITY     6
 
 displaybuffer_t buffer_live;    // On the display currently.
 displaybuffer_t buffer_prelive; // Being written to the display.
@@ -87,6 +93,7 @@ static SemaphoreHandle_t buffer_staging_mutex;
 static xTaskHandle task_displaybuffer_update_handle;
 static xTaskHandle task_displaybuffer_update_worker_top_handle;
 static xTaskHandle task_displaybuffer_update_worker_bot_handle;
+static xTaskHandle task_orchestrator_handle;
 
 const static char *LOG_TAG = "Flipdots";
 
@@ -238,6 +245,16 @@ void task_displaybuffer_update_worker(void* pvParameters) {
   }
 }
 
+void task_orchestrator() {
+  while (true) {
+    // TODO: Implement.
+    // Outline:
+    //  - Run in background.
+    //  - Read inputs (network / physical).
+    //  - React by activating other modes.
+  }
+}
+
 // ****
 // Main
 // ****
@@ -284,6 +301,17 @@ void app_main(void)
       TASK_DISPLAYBUFFER_UPDATE_PRORITY,
       &task_displaybuffer_update_handle,
       tskNO_AFFINITY) == pdTRUE);
+
+  configASSERT(xTaskCreatePinnedToCore(
+      task_orchestrator,
+      TASK_ORCHESTRATOR_NAME,
+      TASK_ORCHESTRATOR_STACK_WORDS,
+      NULL,
+      TASK_ORCHESTRATOR_PRORITY,
+      &task_orchestrator_handle,
+      tskNO_AFFINITY) == pdTRUE);
+
+  mode_clock_init(&buffer_draw);
 
   buffer_draw_bitmap(
       0, 0, graphics_bell_bits, graphics_bell_width, graphics_bell_height,

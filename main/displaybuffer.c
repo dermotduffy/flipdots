@@ -118,8 +118,8 @@ void buffer_tdf_draw_char_info(
 }
 
 void buffer_tdf_draw_string(
-    uint8_t x, uint8_t y, const char* s, const font_info_t* font,
-    displaybuffer_t* buffer) {
+    uint8_t x, uint8_t y, const char* s, int gap_between_chars,
+    const font_info_t* font, displaybuffer_t* buffer) {
   assert(x < buffer->width);  
   assert(y < buffer->height);
   assert(font != NULL);
@@ -128,7 +128,7 @@ void buffer_tdf_draw_string(
   while (*s != '\0' && x < buffer->width) {
     const font_char_info_t* char_info = font_get_char_info(*(s++), font);
     buffer_tdf_draw_char_info(x, y, char_info, font, buffer);
-    x += (char_info->width+1);
+    x += (char_info->width+gap_between_chars);
   }
 }
 
