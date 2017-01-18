@@ -14,7 +14,7 @@
 #include "flipdots-base.h"
 #include "hardware.h"
 #include "graphics_bell.xbm"
-
+#include "mutex-util.h"
 #include "mode-clock.h"
 
 #define TASK_DISPLAYBUFFER_UPDATE_NAME        "display-update"
@@ -97,24 +97,13 @@ static xTaskHandle task_orchestrator_handle;
 
 const static char *LOG_TAG = "Flipdots";
 
-// ****************
-// Helper functions
-// ****************
-static inline void mutex_lock(SemaphoreHandle_t* mutex) {
-  configASSERT(xSemaphoreTake(*mutex, portMAX_DELAY) == pdTRUE);
-}
-
-static inline void mutex_unlock(SemaphoreHandle_t* mutex) {
-  configASSERT(xSemaphoreGive(*mutex) == pdTRUE);
-}
-
 // **************
 // Display buffer helper routines
 // **************
 static bool buffer_commit_drawing() {
-  mutex_lock(&buffer_staging_mutex);
+  mutex_lock(buffer_staging_mutex);
   bool needed = buffer_save_if_needed(&buffer_draw, &buffer_staging);
-  mutex_unlock(&buffer_staging_mutex);
+  mutex_unlock(buffer_staging_mutex);
 
   if (needed) {
     xEventGroupSetBits(display_event_group, DISPLAY_EVENT_COMMIT_BIT);
@@ -123,9 +112,9 @@ static bool buffer_commit_drawing() {
 }
 
 static bool buffer_save_staging_to_prelive() {
-  mutex_lock(&buffer_staging_mutex);
+  mutex_lock(buffer_staging_mutex);
   bool needed = buffer_save_if_needed(&buffer_staging, &buffer_prelive);
-  mutex_unlock(&buffer_staging_mutex);
+  mutex_unlock(buffer_staging_mutex);
   return needed;
 }
 

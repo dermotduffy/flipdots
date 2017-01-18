@@ -1,18 +1,24 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
 #include "mode-clock.h"
+#include "mutex-util.h"
 #include "displaybuffer.h"
 #include "liberation_sans_20.h"
+#include "time-util.h"
 
-#define HOUR_BUFFER_SIZE   3 // 2 digits + null byte.
-#define GAP_BETWEEN_DIGITS 1
+#define HOUR_BUFFER_SIZE        3 // 2 digits + null byte.
+#define GAP_BETWEEN_DIGITS      1
 
-#define MINS_PER_HOUR      60
+#define MINS_PER_HOUR                  60
+
+#define TIME_DELAY_BETWEEN_RUNS_MS      1*1000
+#define TIME_DELAY_IF_ERROR_MS         10*1000
 
 // Use 59 steps rather than 60, in order to ensure the last minute of the hour
 // shows the board full rather than almost full. Error with these calculations
@@ -20,7 +26,7 @@
 #define PIXELS_PER_MIN     (DISPLAY_PIXELS / (MINS_PER_HOUR-1))
 #define PIXELS_PER_MIN_ERR (DISPLAY_PIXELS % (MINS_PER_HOUR-1))
 
-SemaphoreHandle_t mode_clock_semaphore = NULL;
+SemaphoreHandle_t mode_clock_mutex = NULL;
 
 static xTaskHandle task_mode_clock_handle;
 static char hour_buffer[HOUR_BUFFER_SIZE];  // 2 digits + null byte.
@@ -63,21 +69,36 @@ static void task_mode_clock(void* pvParameters) {
   assert(pvParameters != NULL);
   displaybuffer_t* displaybuffer = ((displaybuffer_t*)pvParameters);
 
+  struct tm time_info;
+  bool ever_had_valid_time = false;
+
   while (true) {
-    if (xSemaphoreTake(mode_clock_semaphore, portMAX_DELAY) != pdTRUE) {
-      continue;
+    mutex_lock(mode_clock_mutex);
+
+    // Display an error message if there is no valid time available.
+    if (!ever_had_valid_time) {
+      if (have_valid_time()) {
+        ever_had_valid_time = true;
+      } else {
+        buffer_wipe(displaybuffer);
+        // TODO: Print warning message on displaybuffer.
+        mutex_unlock(mode_clock_mutex);
+        vTaskDelay(TIME_DELAY_IF_ERROR_MS / portTICK_PERIOD_MS);
+        continue;
+      }
     }
 
-    configASSERT(snprintf(hour_buffer, HOUR_BUFFER_SIZE, "%02i", 0) ==
-        HOUR_BUFFER_SIZE-1);
+    // Get the current time.
+    get_time_info(&time_info);
 
+    // Update display buffer.
     buffer_wipe(displaybuffer);
+    draw_hours(time_info.tm_hour, displaybuffer);
+    draw_minutes(time_info.tm_min, displaybuffer);
 
-    // TODO: Get actual hour/minutes.
-    draw_hours(0, displaybuffer);
-    draw_minutes(0, displaybuffer);
-
-    while (xSemaphoreGive(mode_clock_semaphore) != pdTRUE);
+    // Release the lock, and wait until the next run is due.
+    mutex_unlock(mode_clock_mutex);
+    vTaskDelay(TIME_DELAY_BETWEEN_RUNS_MS / portTICK_PERIOD_MS);
   }
 
   // Never reached.
@@ -86,7 +107,7 @@ static void task_mode_clock(void* pvParameters) {
 }
 
 void mode_clock_init(displaybuffer_t* displaybuffer) {
-  mode_clock_semaphore = xSemaphoreCreateBinary();
+  mode_clock_mutex = xSemaphoreCreateMutex();
 
   configASSERT(xTaskCreatePinnedToCore(
       task_mode_clock,
