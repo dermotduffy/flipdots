@@ -12,12 +12,12 @@
 #include "liberation_sans_20.h"
 #include "time-util.h"
 
-#define HOUR_BUFFER_SIZE        3 // 2 digits + null byte.
-#define GAP_BETWEEN_DIGITS      1
+#define HOUR_BUFFER_SIZE               3 // 2 digits + null byte.
+#define GAP_BETWEEN_DIGITS             1
 
 #define MINS_PER_HOUR                  60
 
-#define TIME_DELAY_BETWEEN_RUNS_MS      1*1000
+#define TIME_DELAY_BETWEEN_RUNS_MS     1*1000
 #define TIME_DELAY_IF_ERROR_MS         10*1000
 
 // Use 59 steps rather than 60, in order to ensure the last minute of the hour
@@ -29,26 +29,14 @@
 SemaphoreHandle_t mode_clock_mutex = NULL;
 
 static xTaskHandle task_mode_clock_handle;
-static char hour_buffer[HOUR_BUFFER_SIZE];  // 2 digits + null byte.
+static char hour_buffer[HOUR_BUFFER_SIZE];
 static const font_info_t* hour_font = &liberationSans_20pt_font_info;
 
 static void draw_hours(int hours, displaybuffer_t* displaybuffer) {
-  configASSERT(snprintf(hour_buffer, HOUR_BUFFER_SIZE, "%02i", 0) ==
-      HOUR_BUFFER_SIZE-1);
+  configASSERT(snprintf(hour_buffer, HOUR_BUFFER_SIZE, "%02i", hours) > 0);
 
-  int text_width_in_pixels = font_get_string_pixel_length(
-    hour_buffer, GAP_BETWEEN_DIGITS, hour_font);
-
-  // This should never happen or the font size has been misjudged.
-  assert(text_width_in_pixels < DISPLAY_WIDTH);
-
-  // Center the text.
-  int start_x = (DISPLAY_WIDTH - text_width_in_pixels) / 2;
-  int start_y = (DISPLAY_HEIGHT - hour_font->height) / 2;
-
-  buffer_tdf_draw_string(
-      start_x, start_y, hour_buffer, GAP_BETWEEN_DIGITS,
-      hour_font, displaybuffer);
+  buffer_tdf_draw_string_centre(
+      hour_buffer, GAP_BETWEEN_DIGITS, hour_font, displaybuffer);
 }
 
 static void draw_minutes(int mins, displaybuffer_t* displaybuffer) {
@@ -81,7 +69,9 @@ static void task_mode_clock(void* pvParameters) {
         ever_had_valid_time = true;
       } else {
         buffer_wipe(displaybuffer);
-        // TODO: Print warning message on displaybuffer.
+        buffer_tdf_draw_string_centre(
+            "?", GAP_BETWEEN_DIGITS, hour_font, displaybuffer);
+
         mutex_unlock(mode_clock_mutex);
         vTaskDelay(TIME_DELAY_IF_ERROR_MS / portTICK_PERIOD_MS);
         continue;

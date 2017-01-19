@@ -43,6 +43,10 @@ void buffer_tdf_draw_string(
     uint8_t x, uint8_t y, const char* s, int gap_between_chars,
     const font_info_t* font,
     displaybuffer_t* buffer);
+void buffer_tdf_draw_string_centre(
+    const char* s, int gap_between_chars,
+    const font_info_t* font,
+    displaybuffer_t* buffer);
 
 void buffer_draw_line(
     uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, bool data,

@@ -132,6 +132,23 @@ void buffer_tdf_draw_string(
   }
 }
 
+void buffer_tdf_draw_string_centre(
+    const char* s, int gap_between_chars,
+    const font_info_t* font,
+    displaybuffer_t* buffer) {
+  int text_width_in_pixels = font_get_string_pixel_length(
+      s, gap_between_chars, font);
+
+  int start_x = 0;
+  int start_y = (DISPLAY_HEIGHT - font->height) / 2;
+  if (text_width_in_pixels < DISPLAY_WIDTH) {
+    start_x = (DISPLAY_WIDTH - text_width_in_pixels) / 2;
+  }
+
+  buffer_tdf_draw_string(
+      start_x, start_y, s, gap_between_chars, font, buffer);
+}
+
 bool buffer_save_if_needed(displaybuffer_t* src, displaybuffer_t* dst) {
   assert(src != NULL);
   assert(dst != NULL);
