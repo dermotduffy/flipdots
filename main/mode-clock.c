@@ -26,8 +26,6 @@
 #define PIXELS_PER_MIN     (DISPLAY_PIXELS / (MINS_PER_HOUR-1))
 #define PIXELS_PER_MIN_ERR (DISPLAY_PIXELS % (MINS_PER_HOUR-1))
 
-SemaphoreHandle_t mode_clock_mutex = NULL;
-
 static xTaskHandle task_mode_clock_handle;
 static char hour_buffer[HOUR_BUFFER_SIZE];
 static const font_info_t* hour_font = &liberationSans_20pt_font_info;
@@ -96,14 +94,12 @@ static void task_mode_clock(void* pvParameters) {
   return;
 }
 
-void mode_clock_init(displaybuffer_t* displaybuffer) {
-  mode_clock_mutex = xSemaphoreCreateMutex();
-
+void mode_clock_init() {
   configASSERT(xTaskCreatePinnedToCore(
       task_mode_clock,
       TASK_MODE_CLOCK_NAME,
       TASK_MODE_CLOCK_STACK_WORDS,
-      displaybuffer,
+      NULL,
       TASK_MODE_CLOCK_PRIORITY,
       &task_mode_clock_handle,
       tskNO_AFFINITY) == pdTRUE);

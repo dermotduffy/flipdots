@@ -30,10 +30,14 @@
 #define TASK_ORCHESTRATOR_STACK_WORDS 2<<11
 #define TASK_ORCHESTRATOR_PRORITY     6
 
+#define TIME_DELAY_ORCHESTRATOR_MS    1*1000
+
 displaybuffer_t buffer_live;    // On the display currently.
 displaybuffer_t buffer_prelive; // Being written to the display.
 displaybuffer_t buffer_staging; // Complete frames held before writing.
 displaybuffer_t buffer_draw;    // Drawing happens here.
+
+SemaphoreHandle_t mode_clock_mutex = NULL;
 
 static EventGroupHandle_t display_event_group;
 #define DISPLAY_EVENT_COMMIT_BIT                     BIT0
@@ -235,12 +239,18 @@ void task_displaybuffer_update_worker(void* pvParameters) {
 }
 
 void task_orchestrator() {
+  // All mode mutexes come pre-locked.
+
   while (true) {
-    // TODO: Implement.
-    // Outline:
-    //  - Run in background.
-    //  - Read inputs (network / physical).
-    //  - React by activating other modes.
+    // Let the clock run the default.
+    mutex_unlock(mode_clock_mutex);
+
+    // For now default behaviour is to do nothing. Future:
+    // - Reach to input (physical / network)
+    // - Activate appropriate modes.
+    while (true) {
+      vTaskDelay(TIME_DELAY_ORCHESTRATOR_MS / portTICK_PERIOD_MS);
+    }
   }
 }
 
@@ -300,7 +310,14 @@ void app_main(void)
       &task_orchestrator_handle,
       tskNO_AFFINITY) == pdTRUE);
 
-  mode_clock_init(&buffer_draw);
+  // Create mode locks.
+  mode_clock_mutex = xSemaphoreCreateMutex();
+
+  // Lock mode locks before initing tasks.
+  mutex_lock(mode_clock_mutex);
+
+  // Init tasks.
+  mode_clock_init();
 
   buffer_draw_bitmap(
       0, 0, graphics_bell_bits, graphics_bell_width, graphics_bell_height,

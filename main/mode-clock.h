@@ -11,6 +11,6 @@
 
 extern SemaphoreHandle_t mode_clock_mutex;
 
-void mode_clock_init(displaybuffer_t* displaybuffer);
+void mode_clock_init();
 
 #endif
