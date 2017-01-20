@@ -3,9 +3,10 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+
 #include "flipdots-base.h"
-#include "MatrixFontCommon.h"
 #include "fonts-tdf.h"
+#include "MatrixFontCommon.h"
 
 typedef struct {
   bool data[DISPLAY_WIDTH][DISPLAY_HEIGHT];

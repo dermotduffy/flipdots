@@ -1,8 +1,10 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <time.h>
-#include "esp_log.h"
+
 #include "apps/sntp/sntp.h"
+#include "esp_log.h"
+
 #include "time-util.h"
 
 #define SNTP_SERVER "pool.ntp.org"

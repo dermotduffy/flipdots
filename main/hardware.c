@@ -1,11 +1,13 @@
 #include <string.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
-#include "hardware.h"
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
 #include "flipdots-base.h"
+#include "hardware.h"
 
 #define SPI_SPEED_HZ  10000000
 

@@ -2,6 +2,7 @@
 #define MODE_CLOCK_H
 
 #include "freertos/semphr.h"
+
 #include "mode-base.h"
 #include "displaybuffer.h"
 
@@ -9,11 +10,13 @@
 #define TASK_MODE_CLOCK_STACK_WORDS 2<<11
 #define TASK_MODE_CLOCK_PRIORITY    TASK_MODE_PRIORITY
 
+#define CLOCK_STYLE_MIN             0
+#define CLOCK_STYLE_MAX             CLOCK_STYLE_HOUR_ONLY
 #define CLOCK_STYLE_DEFAULT         CLOCK_STYLE_HOUR_ONLY
 
 typedef struct {
   enum style {
-    CLOCK_STYLE_DIGITAL,
+    CLOCK_STYLE_DIGITAL = CLOCK_STYLE_MIN,
     CLOCK_STYLE_HOUR_ONLY,
   } clock_style;
 } ModeClockParameters;
@@ -23,5 +26,6 @@ extern ModeClockParameters mode_clock_params;  // Protected by mode_clock_mutex.
 
 void mode_clock_setup();  // Prepare task.
 void mode_clock_start();  // Start task.
+void mode_clock_network_input(const uint8_t* data, int bytes);
 
 #endif

@@ -7,12 +7,13 @@
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 
+#include "displaybuffer.h"
 #include "mode-clock.h"
 #include "mutex-util.h"
-#include "displaybuffer.h"
+#include "time-util.h"
+
 #include "liberation_sans_20pt.h"
 #include "liberation_mono_11pt.h"
-#include "time-util.h"
 
 #define TIME_BUFFER_SIZE               6 // Largest: 'XX:XX\0' => 6
 #define GAP_BETWEEN_DIGITS             1
@@ -123,7 +124,7 @@ void mode_clock_setup() {
 }
 
 void mode_clock_start() {
-  // mutex_lock will already be held by orchestrator.
+  // mode_clock_mutex will already be held by orchestrator.
 
   configASSERT(xTaskCreatePinnedToCore(
       task_mode_clock,
@@ -133,4 +134,14 @@ void mode_clock_start() {
       TASK_MODE_CLOCK_PRIORITY,
       &task_mode_clock_handle,
       tskNO_AFFINITY) == pdTRUE);
+}
+
+void mode_clock_network_input(const uint8_t* data, int bytes) {
+  // mode_clock_mutex will already be held by orchestrator.
+  assert(data != NULL);
+  assert(bytes == 1);  
+
+  if (*data <= CLOCK_STYLE_MAX) {
+    mode_clock_params.clock_style = *data;
+  }
 }

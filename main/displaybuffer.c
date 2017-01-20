@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <string.h>
+
 #include "displaybuffer.h"
 #include "MatrixFontCommon.h"
 

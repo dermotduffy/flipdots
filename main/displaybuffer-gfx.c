@@ -26,6 +26,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <stdlib.h>
+
 #include "displaybuffer.h"
 
 // **************

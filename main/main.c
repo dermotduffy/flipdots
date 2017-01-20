@@ -3,14 +3,14 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
-#include "esp_system.h"
 #include "esp_log.h"
+#include "esp_system.h"
 #include "nvs_flash.h"
 
 #include "displaybuffer.h"
 #include "flipdots-base.h"
-#include "hardware.h"
 #include "graphics_bell.xbm"
+#include "hardware.h"
 #include "mutex-util.h"
 #include "network.h"
 #include "orchestrator.h"
