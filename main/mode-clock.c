@@ -112,7 +112,15 @@ static void task_mode_clock(void* pvParameters) {
   return;
 }
 
-void mode_clock_init() {
+void mode_clock_setup() {
+  mutex_lock(mode_clock_mutex);
+  mode_clock_params.clock_style = CLOCK_STYLE_DEFAULT;
+  mutex_unlock(mode_clock_mutex);
+}
+
+void mode_clock_start() {
+  // mutex_lock will already be held by orchestrator.
+
   configASSERT(xTaskCreatePinnedToCore(
       task_mode_clock,
       TASK_MODE_CLOCK_NAME,

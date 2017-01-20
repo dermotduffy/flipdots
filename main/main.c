@@ -313,11 +313,14 @@ void app_main(void)
   // Create mode locks.
   mode_clock_mutex = xSemaphoreCreateMutex();
 
+  // Setup mode tasks.
+  mode_clock_setup();
+
   // Lock mode locks before initing tasks.
   mutex_lock(mode_clock_mutex);
 
-  // Init tasks.
-  mode_clock_init();
+  // Start tasks.
+  mode_clock_start();
 
   buffer_draw_bitmap(
       0, 0, graphics_bell_bits, graphics_bell_width, graphics_bell_height,
