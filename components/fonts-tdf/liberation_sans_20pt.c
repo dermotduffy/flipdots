@@ -1,11 +1,15 @@
-#include "liberation_sans_20.h"
+// Liberation Sans Font
+// Source: https://fedorahosted.org/liberation-fonts/
+// License: SIL Open Font License
+
+#include "liberation_sans_20pt.h"
 
 /* 
 **  Font data for Liberation Sans 20pt
 */
 
 /* Character bitmaps for Liberation Sans 20pt */
-const uint8_t liberationSans_20pt_bitmaps[] = 
+const uint8_t liberation_sans_20pt_bitmaps[] = 
 {
   /* @0 ' ' (2 pixels wide) */
   0x00, //   
@@ -2669,8 +2673,9 @@ const uint8_t liberationSans_20pt_bitmaps[] =
 };
 
 /* Character descriptors for Liberation Sans 20pt */
-/* { [Char width in bits], [Char height in bits], [Offset into liberationSans_20ptCharBitmaps in bytes] } */
-const font_char_info_t liberationSans_20pt_descriptors[] = 
+/* { [Char width in bits], [Char height in bits], [Offset into
+ * liberation_sans_20pt_bitmaps in bytes] } */
+const font_char_info_t liberation_sans_20pt_descriptors[] = 
 {
   {2, 26, 0},     /*   */ 
   {4, 26, 26},    /* ! */ 
@@ -2770,11 +2775,11 @@ const font_char_info_t liberationSans_20pt_descriptors[] =
 };
 
 /* Font information for Liberation Sans 20pt */
-const font_info_t liberationSans_20pt_font_info =
+const font_info_t liberation_sans_20pt_font_info =
 {
   26, /*  Character height */
   ' ', /*  Start character */
   '~', /*  End character */
-  liberationSans_20pt_descriptors, /*  Character descriptor array */
-  liberationSans_20pt_bitmaps, /*  Character bitmap array */
+  liberation_sans_20pt_descriptors, /*  Character descriptor array */
+  liberation_sans_20pt_bitmaps, /*  Character bitmap array */
 };
