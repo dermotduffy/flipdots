@@ -1,21 +1,19 @@
+#include <assert.h>
 #include <string.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
-#include "esp_wifi.h"
 #include "esp_system.h"
-#include "esp_event.h"
-#include "esp_event_loop.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
-#include "soc/soc.h"
 
 #include "displaybuffer.h"
 #include "flipdots-base.h"
 #include "hardware.h"
 #include "graphics_bell.xbm"
 #include "mutex-util.h"
-#include "mode-clock.h"
+#include "network.h"
+#include "orchestrator.h"
 
 #define TASK_DISPLAYBUFFER_UPDATE_NAME        "display-update"
 #define TASK_DISPLAYBUFFER_UPDATE_STACK_WORDS 2<<11
@@ -26,18 +24,12 @@
 #define TASK_DISPLAYBUFFER_UPDATE_WORKER_STACK_WORDS 2<<11
 #define TASK_DISPLAYBUFFER_UPDATE_WORKER_PRORITY     5
 
-#define TASK_ORCHESTRATOR_NAME        "orchestrator"
-#define TASK_ORCHESTRATOR_STACK_WORDS 2<<11
-#define TASK_ORCHESTRATOR_PRORITY     6
-
-#define TIME_DELAY_ORCHESTRATOR_MS    1*1000
+#define TIME_DELAY_STARTUP_PIXEL_TEST_MS 1*1000
 
 displaybuffer_t buffer_live;    // On the display currently.
 displaybuffer_t buffer_prelive; // Being written to the display.
 displaybuffer_t buffer_staging; // Complete frames held before writing.
 displaybuffer_t buffer_draw;    // Drawing happens here.
-
-SemaphoreHandle_t mode_clock_mutex = NULL;
 
 static EventGroupHandle_t display_event_group;
 #define DISPLAY_EVENT_COMMIT_BIT                     BIT0
@@ -97,7 +89,6 @@ static SemaphoreHandle_t buffer_staging_mutex;
 static xTaskHandle task_displaybuffer_update_handle;
 static xTaskHandle task_displaybuffer_update_worker_top_handle;
 static xTaskHandle task_displaybuffer_update_worker_bot_handle;
-static xTaskHandle task_orchestrator_handle;
 
 const static char *LOG_TAG = "Flipdots";
 
@@ -120,6 +111,19 @@ static bool buffer_save_staging_to_prelive() {
   bool needed = buffer_save_if_needed(&buffer_staging, &buffer_prelive);
   mutex_unlock(buffer_staging_mutex);
   return needed;
+}
+
+static void display_test() {
+  buffer_fill(false, &buffer_draw);
+  buffer_commit_drawing();
+  vTaskDelay(TIME_DELAY_STARTUP_PIXEL_TEST_MS / portTICK_PERIOD_MS);
+
+  buffer_fill(true, &buffer_draw);
+  buffer_commit_drawing();
+  vTaskDelay(TIME_DELAY_STARTUP_PIXEL_TEST_MS / portTICK_PERIOD_MS);
+
+  buffer_fill(false, &buffer_draw);
+  buffer_commit_drawing();
 }
 
 // **************
@@ -238,22 +242,6 @@ void task_displaybuffer_update_worker(void* pvParameters) {
   }
 }
 
-void task_orchestrator() {
-  // All mode mutexes come pre-locked.
-
-  while (true) {
-    // Let the clock run the default.
-    mutex_unlock(mode_clock_mutex);
-
-    // For now default behaviour is to do nothing. Future:
-    // - Reach to input (physical / network)
-    // - Activate appropriate modes.
-    while (true) {
-      vTaskDelay(TIME_DELAY_ORCHESTRATOR_MS / portTICK_PERIOD_MS);
-    }
-  }
-}
-
 // ****
 // Main
 // ****
@@ -262,6 +250,9 @@ void app_main(void)
   nvs_flash_init();
   init_spi();
   init_hardware();
+
+  networking_setup();
+  networking_start();
 
   buffer_staging_mutex = xSemaphoreCreateMutex();
   buffer_init(DISPLAY_WIDTH, DISPLAY_HEIGHT, &buffer_live);
@@ -301,35 +292,12 @@ void app_main(void)
       &task_displaybuffer_update_handle,
       tskNO_AFFINITY) == pdTRUE);
 
-  configASSERT(xTaskCreatePinnedToCore(
-      task_orchestrator,
-      TASK_ORCHESTRATOR_NAME,
-      TASK_ORCHESTRATOR_STACK_WORDS,
-      NULL,
-      TASK_ORCHESTRATOR_PRORITY,
-      &task_orchestrator_handle,
-      tskNO_AFFINITY) == pdTRUE);
+  // === Display is functional ===
+  // On start, do an all-pixel test.
+  // (Must be prior to orchestrator taking over the display).
+  display_test();
 
-  // Create mode locks.
-  mode_clock_mutex = xSemaphoreCreateMutex();
-
-  // Setup mode tasks.
-  mode_clock_setup();
-
-  // Lock mode locks before initing tasks.
-  mutex_lock(mode_clock_mutex);
-
-  // Start tasks.
-  mode_clock_start();
-
-  buffer_draw_bitmap(
-      0, 0, graphics_bell_bits, graphics_bell_width, graphics_bell_height,
-      true, &buffer_draw);
-  buffer_commit_drawing();
-
-  while (true) {
-    buffer_inverse(&buffer_draw);
-    buffer_commit_drawing();
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
-  }
+  // Setup & start the orchestrator.
+  orchestrator_setup();
+  orchestrator_start();
 }

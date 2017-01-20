@@ -24,9 +24,10 @@
 // Use 59 steps rather than 60, in order to ensure the last minute of the hour
 // shows the board full rather than almost full. Error with these calculations
 // is spread over the whole hour.
-#define PIXELS_PER_MIN     (DISPLAY_PIXELS / (MINS_PER_HOUR-1))
-#define PIXELS_PER_MIN_ERR (DISPLAY_PIXELS % (MINS_PER_HOUR-1))
+#define HOUR_ONLY_PIXELS_PER_MIN     (DISPLAY_PIXELS / (MINS_PER_HOUR-1))
+#define HOUR_ONLY_PIXELS_PER_MIN_ERR (DISPLAY_PIXELS % (MINS_PER_HOUR-1))
 
+SemaphoreHandle_t mode_clock_mutex = NULL;
 ModeClockParameters mode_clock_params;
 
 static xTaskHandle task_mode_clock_handle;
@@ -42,8 +43,8 @@ static void draw_large_hours(int hours, displaybuffer_t* displaybuffer) {
 }
 
 static void draw_dot_minutes(int mins, displaybuffer_t* displaybuffer) {
-  int dots_to_fill = (mins * PIXELS_PER_MIN) + ceil(
-      (mins / ((double) (MINS_PER_HOUR-1))) * PIXELS_PER_MIN_ERR);
+  int dots_to_fill = (mins * HOUR_ONLY_PIXELS_PER_MIN) + ceil(
+      (mins / ((double) (MINS_PER_HOUR-1))) * HOUR_ONLY_PIXELS_PER_MIN_ERR);
 
   for (int y = 0; y < DISPLAY_HEIGHT && dots_to_fill > 0; ++y) {
     for (int x = 0;
@@ -113,6 +114,8 @@ static void task_mode_clock(void* pvParameters) {
 }
 
 void mode_clock_setup() {
+  mode_clock_mutex = xSemaphoreCreateMutex();
+
   mutex_lock(mode_clock_mutex);
   mode_clock_params.clock_style = CLOCK_STYLE_DEFAULT;
   mutex_unlock(mode_clock_mutex);
