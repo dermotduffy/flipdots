@@ -9,10 +9,11 @@
 #include "mode-clock.h"
 #include "mutex-util.h"
 #include "displaybuffer.h"
-#include "liberation_sans_20.h"
+#include "liberation_sans_20pt.h"
+#include "liberation_mono_11pt.h"
 #include "time-util.h"
 
-#define HOUR_BUFFER_SIZE               3 // 2 digits + null byte.
+#define TIME_BUFFER_SIZE               6 // Largest: 'XX:XX\0' => 6
 #define GAP_BETWEEN_DIGITS             1
 
 #define MINS_PER_HOUR                  60
@@ -26,18 +27,21 @@
 #define PIXELS_PER_MIN     (DISPLAY_PIXELS / (MINS_PER_HOUR-1))
 #define PIXELS_PER_MIN_ERR (DISPLAY_PIXELS % (MINS_PER_HOUR-1))
 
-static xTaskHandle task_mode_clock_handle;
-static char hour_buffer[HOUR_BUFFER_SIZE];
-static const font_info_t* hour_font = &liberationSans_20pt_font_info;
+ModeClockParameters mode_clock_params;
 
-static void draw_hours(int hours, displaybuffer_t* displaybuffer) {
-  configASSERT(snprintf(hour_buffer, HOUR_BUFFER_SIZE, "%02i", hours) > 0);
+static xTaskHandle task_mode_clock_handle;
+static char time_buffer[TIME_BUFFER_SIZE];
+static const font_info_t* font_large = &liberation_sans_20pt_font_info;
+static const font_info_t* font_medium = &liberation_mono_11pt_font_info;
+
+static void draw_large_hours(int hours, displaybuffer_t* displaybuffer) {
+  configASSERT(snprintf(time_buffer, TIME_BUFFER_SIZE, "%02i", hours) > 0);
 
   buffer_tdf_draw_string_centre(
-      hour_buffer, GAP_BETWEEN_DIGITS, hour_font, displaybuffer);
+      time_buffer, GAP_BETWEEN_DIGITS, font_large, displaybuffer);
 }
 
-static void draw_minutes(int mins, displaybuffer_t* displaybuffer) {
+static void draw_dot_minutes(int mins, displaybuffer_t* displaybuffer) {
   int dots_to_fill = (mins * PIXELS_PER_MIN) + ceil(
       (mins / ((double) (MINS_PER_HOUR-1))) * PIXELS_PER_MIN_ERR);
 
@@ -49,6 +53,15 @@ static void draw_minutes(int mins, displaybuffer_t* displaybuffer) {
       displaybuffer->data[x][y] = !current_value;
     }
   }
+}
+
+static void draw_time(
+    const struct tm* time_info, displaybuffer_t* displaybuffer) {
+  configASSERT(strftime(
+      time_buffer, TIME_BUFFER_SIZE, "%H:%M", time_info) > 0);
+
+  buffer_tdf_draw_string_centre(
+    time_buffer, GAP_BETWEEN_DIGITS, font_medium, displaybuffer);    
 }
 
 static void task_mode_clock(void* pvParameters) {
@@ -68,7 +81,7 @@ static void task_mode_clock(void* pvParameters) {
       } else {
         buffer_wipe(displaybuffer);
         buffer_tdf_draw_string_centre(
-            "?", GAP_BETWEEN_DIGITS, hour_font, displaybuffer);
+            "?", GAP_BETWEEN_DIGITS, font_large, displaybuffer);
 
         mutex_unlock(mode_clock_mutex);
         vTaskDelay(TIME_DELAY_IF_ERROR_MS / portTICK_PERIOD_MS);
@@ -81,9 +94,14 @@ static void task_mode_clock(void* pvParameters) {
 
     // Update display buffer.
     buffer_wipe(displaybuffer);
-    draw_hours(time_info.tm_hour, displaybuffer);
-    draw_minutes(time_info.tm_min, displaybuffer);
 
+    if (mode_clock_params.clock_style == CLOCK_STYLE_HOUR_ONLY) {
+      draw_large_hours(time_info.tm_hour, displaybuffer);
+      draw_dot_minutes(time_info.tm_min, displaybuffer);
+    } else { // Default: CLOCK_STYLE_DIGITAL
+      draw_time(&time_info, displaybuffer);     
+    }
+    
     // Release the lock, and wait until the next run is due.
     mutex_unlock(mode_clock_mutex);
     vTaskDelay(TIME_DELAY_BETWEEN_RUNS_MS / portTICK_PERIOD_MS);

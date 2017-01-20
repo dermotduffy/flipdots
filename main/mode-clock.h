@@ -9,7 +9,17 @@
 #define TASK_MODE_CLOCK_STACK_WORDS 2<<11
 #define TASK_MODE_CLOCK_PRIORITY    TASK_MODE_PRIORITY
 
+typedef struct {
+  enum style {
+    CLOCK_STYLE_DIGITAL,
+    CLOCK_STYLE_HOUR_ONLY,
+  } clock_style;
+} ModeClockParameters;
+
 extern SemaphoreHandle_t mode_clock_mutex;
+
+// mode_clock_params protected by mode_clock_mutex.
+extern ModeClockParameters mode_clock_params;
 
 void mode_clock_init();
 
