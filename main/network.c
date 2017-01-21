@@ -20,9 +20,9 @@
 
 #define DELAY_SERVER_ERROR_MS        1000
 
-EventGroupHandle_t network_event_group;
+EventGroupHandle_t network_event_group = NULL;
 
-SemaphoreHandle_t network_data_mutex;
+SemaphoreHandle_t network_data_mutex = NULL;
 uint8_t network_data_buf[NETWORK_DATA_BUF_SIZE];
 uint8_t network_data_buf_used_size;
 
@@ -30,7 +30,7 @@ static xTaskHandle task_server_handle;
 const static char *LOG_TAG = "server";
 
 static void submit_data(
-    const uint8_t recv_buf[NETWORK_DATA_BUF_SIZE], int bytes_used) {
+    const uint8_t recv_buf[NETWORK_DATA_BUF_SIZE], uint8_t bytes_used) {
   assert(bytes_used <= NETWORK_DATA_BUF_SIZE);
 
   mutex_lock(&network_data_mutex);
@@ -142,6 +142,9 @@ static esp_err_t wifi_event_handler(void *ctx, system_event_t *event) {
 
 void networking_setup(void) {
   tcpip_adapter_init();
+
+  network_data_mutex = xSemaphoreCreateMutex();
+  configASSERT(network_data_mutex != NULL);
 
   network_event_group = xEventGroupCreate();
   configASSERT(network_event_group != NULL);

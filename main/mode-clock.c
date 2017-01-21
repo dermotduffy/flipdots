@@ -3,11 +3,13 @@
 #include <stdio.h>
 #include <time.h>
 
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 
 #include "displaybuffer.h"
+#include "displaydriver.h"
 #include "mode-clock.h"
 #include "mutex-util.h"
 #include "time-util.h"
@@ -31,6 +33,8 @@
 
 SemaphoreHandle_t mode_clock_mutex = NULL;
 ModeClockParameters mode_clock_params;
+
+const static char *LOG_TAG = "mode-clock";
 
 static xTaskHandle task_mode_clock_handle;
 static char time_buffer[TIME_BUFFER_SIZE];
@@ -68,9 +72,6 @@ static void draw_time(
 }
 
 static void task_mode_clock(void* pvParameters) {
-  assert(pvParameters != NULL);
-  displaybuffer_t* displaybuffer = ((displaybuffer_t*)pvParameters);
-
   struct tm time_info;
   bool ever_had_valid_time = false;
 
@@ -82,9 +83,10 @@ static void task_mode_clock(void* pvParameters) {
       if (have_valid_time()) {
         ever_had_valid_time = true;
       } else {
-        buffer_wipe(displaybuffer);
+        buffer_wipe(&buffer_draw);
         buffer_tdf_draw_string_centre(
-            "?", GAP_BETWEEN_DIGITS, font_large, displaybuffer);
+            "?", GAP_BETWEEN_DIGITS, font_large, &buffer_draw);
+        buffer_commit_drawing();
 
         mutex_unlock(mode_clock_mutex);
         vTaskDelay(TIME_DELAY_IF_ERROR_MS / portTICK_PERIOD_MS);
@@ -96,13 +98,13 @@ static void task_mode_clock(void* pvParameters) {
     get_time_info(&time_info);
 
     // Update display buffer.
-    buffer_wipe(displaybuffer);
+    buffer_wipe(&buffer_draw);
 
     if (mode_clock_params.clock_style == CLOCK_STYLE_HOUR_ONLY) {
-      draw_large_hours(time_info.tm_hour, displaybuffer);
-      draw_dot_minutes(time_info.tm_min, displaybuffer);
+      draw_large_hours(time_info.tm_hour, &buffer_draw);
+      draw_dot_minutes(time_info.tm_min, &buffer_draw);
     } else { // Default: CLOCK_STYLE_DIGITAL
-      draw_time(&time_info, displaybuffer);     
+      draw_time(&time_info, &buffer_draw);
     }
     
     // Release the lock, and wait until the next run is due.
@@ -125,7 +127,6 @@ void mode_clock_setup() {
 
 void mode_clock_start() {
   // mode_clock_mutex will already be held by orchestrator.
-
   configASSERT(xTaskCreatePinnedToCore(
       task_mode_clock,
       TASK_MODE_CLOCK_NAME,

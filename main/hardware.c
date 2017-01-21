@@ -2,7 +2,6 @@
 
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
-#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -18,32 +17,34 @@ static spi_device_handle_t spi_bot_cols;
 static spi_device_handle_t spi_bot_rows;
 #endif
 
-void init_spi() {
+void hardware_setup() {
 
 #if SPI_MODE == SPI_NATIVE
   spi_host_device_t host_top = HSPI_HOST;
   spi_host_device_t host_bot = VSPI_HOST;
 
   spi_bus_config_t default_buscfg = {
-    .spiq_io_num=-1,
-    .spiwp_io_num=-1,
-    .spihd_io_num=-1
+    .miso_io_num=-1,
+    .quadwp_io_num=-1,
+    .quadhd_io_num=-1
   };
 
   spi_bus_config_t spi_top_buscfg = default_buscfg;
-  spi_top_buscfg.spid_io_num=PIN_TOP_SERIAL_OUT;
-  spi_top_buscfg.spiclk_io_num=PIN_TOP_SERIAL_CLK;
+  spi_top_buscfg.mosi_io_num=PIN_TOP_SERIAL_OUT;
+  spi_top_buscfg.sclk_io_num=PIN_TOP_SERIAL_CLK;
   ESP_ERROR_CHECK(spi_bus_initialize(host_top, &spi_top_buscfg, 1));
 
   spi_bus_config_t spi_bot_buscfg = default_buscfg;
-  spi_bot_buscfg.spid_io_num=PIN_BOT_SERIAL_OUT;
-  spi_bot_buscfg.spiclk_io_num=PIN_BOT_SERIAL_CLK;
+  spi_bot_buscfg.mosi_io_num=PIN_BOT_SERIAL_OUT;
+  spi_bot_buscfg.sclk_io_num=PIN_BOT_SERIAL_CLK;
   ESP_ERROR_CHECK(spi_bus_initialize(host_bot, &spi_bot_buscfg, 2));
 
   spi_device_interface_config_t default_cfg = {
     .clock_speed_hz=SPI_SPEED_HZ,
     .mode=0,
     .queue_size=1,
+    .pre_cb=NULL,
+    .post_cb=NULL,
   };
 
   spi_device_interface_config_t spi_top_cols_cfg = default_cfg;
@@ -79,9 +80,8 @@ void init_spi() {
   gpio_set_direction(PIN_BOT_SR2_LATCH, GPIO_MODE_OUTPUT);
 
 #endif
-}
 
-void init_hardware() {
+  // Flipdot FP2800 enable (latch) pins.
   gpio_set_direction(PIN_TOP_ENABLE, GPIO_MODE_OUTPUT);
   gpio_set_direction(PIN_BOT_ENABLE, GPIO_MODE_OUTPUT);
 }
@@ -102,11 +102,13 @@ void shift_byte(
 }
 #else
 void shift_byte(uint8_t data, spi_device_handle_t* spi_device) {
+
   spi_transaction_t spi_trans;
   memset(&spi_trans, 0, sizeof(spi_trans));
   spi_trans.length = sizeof(data) * 8;  // Transaction length is in bits.
   spi_trans.tx_data[0] = data;
-  spi_trans.flags = SPI_USE_TXDATA;
+  
+  spi_trans.flags = SPI_TRANS_USE_TXDATA;
 
   ESP_ERROR_CHECK(spi_device_transmit(*spi_device, &spi_trans));
 }

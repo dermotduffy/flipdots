@@ -1,7 +1,7 @@
 #ifndef HARDWARE_H
 #define HARDWARE_H
 
-//#include "driver/spi_master.h"
+#include "driver/spi_master.h"
 
 // ***********************************************
 // All hardware specific logic belows in this file
@@ -17,14 +17,14 @@
 //                                      +------------------------------------+
 
 #define PIN_TOP_SERIAL_OUT               23 // Serial data out (future: MOSI).
-#define PIN_TOP_SERIAL_CLK               23 // Serial data clock (future: SCLK).
+#define PIN_TOP_SERIAL_CLK               22 // Serial data clock (future: SCLK).
 #define PIN_TOP_SR1_LATCH                18 // Serial latch for SR1 (cols)
-#define PIN_TOP_SR2_LATCH                19 // Serial latch for SR2 (rows+data)
+#define PIN_TOP_SR2_LATCH                17 // Serial latch for SR2 (rows+data)
 #define PIN_TOP_ENABLE                   27
 
 #define PIN_BOT_SERIAL_OUT               5  // Serial data out (future: MOSI).
 #define PIN_BOT_SERIAL_CLK               4  // Serial data clock (future: SCLK).
-#define PIN_BOT_SR1_LATCH                0  // Serial latch for SR1 (cols)
+#define PIN_BOT_SR1_LATCH                16 // Serial latch for SR1 (cols)
 #define PIN_BOT_SR2_LATCH                2  // Serial latch for SR2 (rows+data)
 #define PIN_BOT_ENABLE                   26
 
@@ -56,15 +56,14 @@
 
 #define SPI_BITBANG                      1
 #define SPI_NATIVE                       2
-#define SPI_MODE                         SPI_BITBANG
+#define SPI_MODE                         SPI_NATIVE
 
 typedef enum {
   FLIP_BOARD_TOP,
   FLIP_BOARD_BOTTOM,
 } FlipBoard;
 
-void init_hardware();
-void init_spi();
+void hardware_setup();
 
 #if SPI_MODE == SPI_BITBANG
 void shift_byte(const uint8_t data_pin, const uint8_t clock_pin,
@@ -124,5 +123,4 @@ uint8_t inline translate_board_row_to_address(uint8_t y) {
 }
 
 bool raw_write_bit(uint8_t col_in, uint8_t row_in, bool data_in);
-
 #endif

@@ -1,3 +1,5 @@
+#include <assert.h>
+
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
@@ -54,6 +56,8 @@ static SemaphoreHandle_t orchestrator_network_input() {
 }
 
 void task_orchestrator() {
+  assert(network_event_group != NULL);
+
   // All mode mutexes come pre-locked.
   
   // Let the clock run the default.
@@ -68,7 +72,8 @@ void task_orchestrator() {
         NETWORK_EVENT_DATA_READY_BIT,
         pdTRUE,   // Clear on exit.
         pdTRUE,   // Wait for all bits.
-        TIME_DELAY_ORCHESTRATOR_MS) & NETWORK_EVENT_DATA_READY_BIT) == 0) {
+        TIME_DELAY_ORCHESTRATOR_MS) & NETWORK_EVENT_DATA_READY_BIT) ==
+            NETWORK_EVENT_DATA_READY_BIT) {
       network_event_received = true;
     }
     mutex_lock(runnable_mode_mutex);  // Block task.
