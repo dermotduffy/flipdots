@@ -112,7 +112,7 @@ void buffer_tdf_draw_char_info(
          col < char_info->width && (x+col) < buffer->width;
          ++col) {
       buffer->data[x+col][y+row] =
-          font_get_pixel(char_info, x+col, y+row, font);
+          font_get_pixel(char_info, col, row, font);
     }
   }
   buffer->modified = true;
