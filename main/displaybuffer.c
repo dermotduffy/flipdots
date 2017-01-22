@@ -8,6 +8,15 @@
 // Display buffer functions
 // ************************
 
+static void inline raw_write_pixel(
+    uint8_t x, uint8_t y, PixelValue value, displaybuffer_t* buffer) {
+  if (value == PIXEL_INVERSE) {
+    buffer->data[x][y] = !buffer->data[x][y];
+  } else {
+    buffer->data[x][y] = (bool)value;
+  }
+}
+
 void buffer_init(uint8_t width, uint8_t height, displaybuffer_t* buffer) {
   assert(buffer != NULL);
 
@@ -17,83 +26,46 @@ void buffer_init(uint8_t width, uint8_t height, displaybuffer_t* buffer) {
   buffer->width = width;
 }
 
-void buffer_fill(bool data, displaybuffer_t* buffer) {
+void buffer_fill(PixelValue value, displaybuffer_t* buffer) {
   assert(buffer != NULL);
 
   for (uint8_t x = 0; x < buffer->width; ++x) {
     for (uint8_t y = 0; y < buffer->height; ++y) {
-      buffer->data[x][y] = data;
+      raw_write_pixel(x, y, value, buffer);
     }
   }
   buffer->modified = true;
 }
 
 void buffer_wipe(displaybuffer_t* buffer) {
-  buffer_fill(false, buffer);
+  buffer_fill(PIXEL_BLACK, buffer);
 }
 
-void buffer_draw_pixel(uint8_t x, uint8_t y, bool data, displaybuffer_t* buffer) {
+void buffer_inverse(displaybuffer_t* buffer) {
+  buffer_fill(PIXEL_INVERSE, buffer);
+}
+
+void buffer_draw_pixel(
+    uint8_t x, uint8_t y, PixelValue value,
+    displaybuffer_t* buffer) {
   assert(buffer != NULL);
   assert(x < buffer->width);
   assert(y < buffer->height);
 
-  buffer->data[x][y] = data;
+  raw_write_pixel(x, y, value, buffer);
+
   buffer->modified = true;
-}
-
-void buffer_inverse(displaybuffer_t* buffer) {
-  assert(buffer != NULL);
-
-  for (uint8_t x = 0; x < buffer->width; ++x) {    
-    for (uint8_t y = 0; y < buffer->height; ++y) {
-      buffer->data[x][y] = !buffer->data[x][y];
-    }
-  }
-  buffer->modified = true;
-}
-
-void buffer_bdf2c_draw_char(
-    uint8_t x, uint8_t y, char c, const bitmap_font* font,
-    displaybuffer_t* buffer) {
-  assert(font != NULL);
-  assert(buffer != NULL);
-
-  for (int row = 0;
-       row < font->Height && (y+row) < buffer->height;
-       ++row) {
-    uint16_t pixel_row = getBitmapFontRowAtXY(c, row, font); 
-
-    for (int col = 0;
-         col < font->Width && (x+col) < buffer->width;
-         ++col) {
-      buffer->data[x+col][y+row] = pixel_row & (0x80>>col);
-    }
-  }
-  buffer->modified = true;
-}
-
-void buffer_bdf2c_draw_string(
-    uint8_t x, uint8_t y, const char* s, const bitmap_font* font,
-    displaybuffer_t* buffer) {
-  assert(x < buffer->width);  
-  assert(y < buffer->height);
-  assert(font != NULL);
-  assert(buffer != NULL);
-
-  while (*s != '\0') {
-    buffer_bdf2c_draw_char(x, y, *(s++), font, buffer);
-    x += (font->Width+1);
-  }
 }
 
 void buffer_tdf_draw_char(
-    uint8_t x, uint8_t y, char c, const font_info_t* font,
+    uint8_t x, uint8_t y, PixelValue value,
+    char c, const font_info_t* font,
     displaybuffer_t* buffer) {
-  buffer_tdf_draw_char_info(x, y, font_get_char_info(c, font), font, buffer);
+  buffer_tdf_draw_char_info(x, y, value, font_get_char_info(c, font), font, buffer);
 }
 
 void buffer_tdf_draw_char_info(
-    uint8_t x, uint8_t y,
+    uint8_t x, uint8_t y, PixelValue value,
     const font_char_info_t* char_info, const font_info_t* font,
     displaybuffer_t* buffer) {
   assert(font != NULL);
@@ -111,15 +83,17 @@ void buffer_tdf_draw_char_info(
     for (int col = 0;
          col < char_info->width && (x+col) < buffer->width;
          ++col) {
-      buffer->data[x+col][y+row] =
-          font_get_pixel(char_info, col, row, font);
+      if (font_get_pixel(char_info, col, row, font)) {
+        raw_write_pixel(x+col, y+row, value, buffer);
+      }
     }
   }
   buffer->modified = true;
 }
 
 void buffer_tdf_draw_string(
-    uint8_t x, uint8_t y, const char* s, int gap_between_chars,
+    uint8_t x, uint8_t y, PixelValue value,
+    const char* s, int gap_between_chars,
     const font_info_t* font, displaybuffer_t* buffer) {
   assert(x < buffer->width);  
   assert(y < buffer->height);
@@ -128,12 +102,13 @@ void buffer_tdf_draw_string(
 
   while (*s != '\0' && x < buffer->width) {
     const font_char_info_t* char_info = font_get_char_info(*(s++), font);
-    buffer_tdf_draw_char_info(x, y, char_info, font, buffer);
+    buffer_tdf_draw_char_info(x, y, value, char_info, font, buffer);
     x += (char_info->width+gap_between_chars);
   }
 }
 
 void buffer_tdf_draw_string_centre(
+    PixelValue value, 
     const char* s, int gap_between_chars,
     const font_info_t* font,
     displaybuffer_t* buffer) {
@@ -147,7 +122,7 @@ void buffer_tdf_draw_string_centre(
   }
 
   buffer_tdf_draw_string(
-      start_x, start_y, s, gap_between_chars, font, buffer);
+      start_x, start_y, value, s, gap_between_chars, font, buffer);
 }
 
 bool buffer_save_if_needed(displaybuffer_t* src, displaybuffer_t* dst) {

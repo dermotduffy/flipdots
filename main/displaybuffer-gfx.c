@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 void buffer_draw_line(
-  uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, bool data,
+  uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, PixelValue value,
   displaybuffer_t* buffer) {
 
   bool steep = abs(y1 - y0) > abs(x1 - x0);
@@ -72,9 +72,9 @@ void buffer_draw_line(
 
   for (; x0 <= x1; x0++) {
     if (steep) {
-      buffer_draw_pixel(y0, x0, data, buffer);
+      buffer_draw_pixel(y0, x0, value, buffer);
     } else {
-      buffer_draw_pixel(x0, y0, data, buffer);
+      buffer_draw_pixel(x0, y0, value, buffer);
     }
     err -= dy;
     if (err < 0) {
@@ -87,7 +87,7 @@ void buffer_draw_line(
 void buffer_draw_bitmap(
   uint8_t x, uint8_t y,
   const uint8_t *bitmap, 
-  uint8_t w, uint8_t h, bool data,
+  uint8_t w, uint8_t h, PixelValue value,
   displaybuffer_t* buffer) {
 
   uint8_t xpos, ypos, byte_width = (w + 7) / 8;
@@ -101,7 +101,7 @@ void buffer_draw_bitmap(
         byte = bitmap[ypos * byte_width + xpos / 8];
       } 
       if(byte & 0x01) {
-        buffer_draw_pixel(x+xpos, y+ypos, true, buffer);
+        buffer_draw_pixel(x+xpos, y+ypos, value, buffer);
       }
     }
   }
@@ -111,7 +111,7 @@ void buffer_fill_triangle(
     int16_t x0, int16_t y0,
     int16_t x1, int16_t y1,
     int16_t x2, int16_t y2,
-    bool data,
+    PixelValue value,
     displaybuffer_t* buffer) {
   int16_t a, b, y, last;
 
@@ -132,7 +132,7 @@ void buffer_fill_triangle(
     else if(x1 > b) b = x1;
     if(x2 < a)      a = x2;
     else if(x2 > b) b = x2;
-    buffer_draw_line(a, y0, b-a+1, y0, data, buffer);
+    buffer_draw_line(a, y0, b-a+1, y0, value, buffer);
     return;
   }
 
@@ -166,7 +166,7 @@ void buffer_fill_triangle(
     b = x0 + (x2 - x0) * (y - y0) / (y2 - y0);
     */
     if(a > b) _swap_int16_t(a,b);
-    buffer_draw_line(a, y, b-a+1, y, data, buffer);
+    buffer_draw_line(a, y, b-a+1, y, value, buffer);
   }
 
   // For lower part of triangle, find scanline crossings for segments
@@ -183,6 +183,6 @@ void buffer_fill_triangle(
     b = x0 + (x2 - x0) * (y - y0) / (y2 - y0);
     */
     if(a > b) _swap_int16_t(a,b);
-    buffer_draw_line(a, y, b-a+1, y, data, buffer);
+    buffer_draw_line(a, y, b-a+1, y, value, buffer);
   }
 }

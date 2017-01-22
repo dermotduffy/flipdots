@@ -45,7 +45,7 @@ static void draw_large_hours(int hours, displaybuffer_t* displaybuffer) {
   configASSERT(snprintf(time_buffer, TIME_BUFFER_SIZE, "%02i", hours) > 0);
 
   buffer_tdf_draw_string_centre(
-      time_buffer, GAP_BETWEEN_DIGITS, font_large, displaybuffer);
+      PIXEL_YELLOW, time_buffer, GAP_BETWEEN_DIGITS, font_large, displaybuffer);
 }
 
 static void draw_dot_minutes(int mins, displaybuffer_t* displaybuffer) {
@@ -68,7 +68,7 @@ static void draw_time(
       time_buffer, TIME_BUFFER_SIZE, "%H:%M", time_info) > 0);
 
   buffer_tdf_draw_string_centre(
-    time_buffer, GAP_BETWEEN_DIGITS, font_medium, displaybuffer);    
+    PIXEL_YELLOW, time_buffer, GAP_BETWEEN_DIGITS, font_medium, displaybuffer);
 }
 
 static void task_mode_clock(void* pvParameters) {
@@ -85,7 +85,7 @@ static void task_mode_clock(void* pvParameters) {
       } else {
         buffer_wipe(&buffer_draw);
         buffer_tdf_draw_string_centre(
-            "?", GAP_BETWEEN_DIGITS, font_large, &buffer_draw);
+            PIXEL_YELLOW, "?", GAP_BETWEEN_DIGITS, font_large, &buffer_draw);
         buffer_commit_drawing();
 
         mutex_unlock(mode_clock_mutex);
