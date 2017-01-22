@@ -144,6 +144,7 @@ void mode_clock_network_input(const uint8_t* data, int bytes) {
   assert(bytes == 1);  
 
   if (*data <= CLOCK_STYLE_MAX) {
+    ESP_LOGW(LOG_TAG, "Setting clock style: %i", data);
     mode_clock_params.clock_style = *data;
   }
 }

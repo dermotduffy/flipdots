@@ -33,10 +33,10 @@ static void submit_data(
     const uint8_t recv_buf[NETWORK_DATA_BUF_SIZE], uint8_t bytes_used) {
   assert(bytes_used <= NETWORK_DATA_BUF_SIZE);
 
-  mutex_lock(&network_data_mutex);
+  mutex_lock(network_data_mutex);
   memcpy(network_data_buf, recv_buf, bytes_used); 
   network_data_buf_used_size = bytes_used;
-  mutex_unlock(&network_data_mutex);
+  mutex_unlock(network_data_mutex);
 
   xEventGroupSetBits(network_event_group, NETWORK_EVENT_DATA_READY_BIT);
 }
