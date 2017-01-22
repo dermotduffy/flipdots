@@ -12,7 +12,7 @@
 
 const static char *LOG_TAG = "time-util";
 
-void time_initalise() {
+void time_sntp_start() {
   ESP_LOGI(LOG_TAG, "Initializing SNTP...");
   sntp_setoperatingmode(SNTP_OPMODE_POLL);
   sntp_setservername(0, SNTP_SERVER);

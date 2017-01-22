@@ -12,7 +12,7 @@
 
 #define CLOCK_STYLE_MIN             0
 #define CLOCK_STYLE_MAX             CLOCK_STYLE_HOUR_ONLY
-#define CLOCK_STYLE_DEFAULT         CLOCK_STYLE_HOUR_ONLY
+#define CLOCK_STYLE_DEFAULT         CLOCK_STYLE_DIGITAL
 
 typedef struct {
   enum style {

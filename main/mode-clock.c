@@ -15,7 +15,7 @@
 #include "time-util.h"
 
 #include "liberation_sans_20pt.h"
-#include "liberation_mono_11pt.h"
+#include "gohufont_11.h"
 
 #define TIME_BUFFER_SIZE               6 // Largest: 'XX:XX\0' => 6
 #define GAP_BETWEEN_DIGITS             1
@@ -39,7 +39,7 @@ const static char *LOG_TAG = "mode-clock";
 static xTaskHandle task_mode_clock_handle;
 static char time_buffer[TIME_BUFFER_SIZE];
 static const font_info_t* font_large = &liberation_sans_20pt_font_info;
-static const font_info_t* font_medium = &liberation_mono_11pt_font_info;
+static const font_info_t* font_medium = &gohufont_11_font_info;
 
 static void draw_large_hours(int hours, displaybuffer_t* displaybuffer) {
   configASSERT(snprintf(time_buffer, TIME_BUFFER_SIZE, "%02i", hours) > 0);
@@ -107,6 +107,7 @@ static void task_mode_clock(void* pvParameters) {
       draw_time(&time_info, &buffer_draw);
     }
     
+    buffer_commit_drawing();
     // Release the lock, and wait until the next run is due.
     mutex_unlock(mode_clock_mutex);
     vTaskDelay(TIME_DELAY_BETWEEN_RUNS_MS / portTICK_PERIOD_MS);

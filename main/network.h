@@ -8,9 +8,8 @@
 // Define these, or run make as ...
 //   EXTRA_CPPFLAGS='-DWIFI_SSID=\"SSID\" -DWIFI_PASSWORD=\"PASSWORD\"' make
 //
-// TODO: Remove fake entries when ready for testing.
-#define WIFI_SSID            "FakeTestSSID"
-#define WIFI_PASSWORD        "FakeTestPassword"
+//#define WIFI_SSID            "SSID"
+//#define WIFI_PASSWORD        "Password"
 
 extern EventGroupHandle_t network_event_group;
 #define NETWORK_EVENT_CONNECTED_BIT  BIT0  // Connected?

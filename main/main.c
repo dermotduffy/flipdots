@@ -11,6 +11,7 @@
 #include "displaydriver.h"
 #include "network.h"
 #include "orchestrator.h"
+#include "time-util.h"
 
 const static char *LOG_TAG = "flipdots";
 
@@ -23,6 +24,8 @@ void app_main(void)
 
   networking_setup();
   networking_start();
+
+  time_sntp_start();
 
   displaydriver_setup();
   displaydriver_start();
