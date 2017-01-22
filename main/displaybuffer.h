@@ -58,6 +58,12 @@ void buffer_draw_bitmap(
     const uint8_t *bitmap, 
     uint8_t w, uint8_t h, PixelValue value,
     displaybuffer_t* buffer);
+void buffer_draw_triangle(
+    int16_t x0, int16_t y0,
+    int16_t x1, int16_t y1,
+    int16_t x2, int16_t y2,
+    PixelValue value,
+    displaybuffer_t* buffer);
 void buffer_fill_triangle(
     int16_t x0, int16_t y0,
     int16_t x1, int16_t y1,

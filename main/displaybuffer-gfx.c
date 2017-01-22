@@ -107,6 +107,16 @@ void buffer_draw_bitmap(
   }
 }
 
+void buffer_draw_triangle(
+    int16_t x0, int16_t y0,
+    int16_t x1, int16_t y1,
+    int16_t x2, int16_t y2, PixelValue value,
+    displaybuffer_t* buffer) {
+  buffer_draw_line(x0, y0, x1, y1, value, buffer);
+  buffer_draw_line(x1, y1, x2, y2, value, buffer);
+  buffer_draw_line(x2, y2, x0, y0, value, buffer);
+}
+
 void buffer_fill_triangle(
     int16_t x0, int16_t y0,
     int16_t x1, int16_t y1,
@@ -132,7 +142,7 @@ void buffer_fill_triangle(
     else if(x1 > b) b = x1;
     if(x2 < a)      a = x2;
     else if(x2 > b) b = x2;
-    buffer_draw_line(a, y0, b-a+1, y0, value, buffer);
+    buffer_draw_line(a, y0, a+(b-a), y0, value, buffer);
     return;
   }
 
@@ -166,7 +176,7 @@ void buffer_fill_triangle(
     b = x0 + (x2 - x0) * (y - y0) / (y2 - y0);
     */
     if(a > b) _swap_int16_t(a,b);
-    buffer_draw_line(a, y, b-a+1, y, value, buffer);
+    buffer_draw_line(a, y, a+(b-a), y, value, buffer);
   }
 
   // For lower part of triangle, find scanline crossings for segments
@@ -183,6 +193,6 @@ void buffer_fill_triangle(
     b = x0 + (x2 - x0) * (y - y0) / (y2 - y0);
     */
     if(a > b) _swap_int16_t(a,b);
-    buffer_draw_line(a, y, b-a+1, y, value, buffer);
+    buffer_draw_line(a, y, a+(b-a), y, value, buffer);
   }
 }

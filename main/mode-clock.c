@@ -103,6 +103,20 @@ static void task_mode_clock(void* pvParameters) {
     if (mode_clock_params.clock_style == CLOCK_STYLE_HOUR_ONLY) {
       draw_large_hours(time_info.tm_hour, &buffer_draw);
       draw_dot_minutes(time_info.tm_min, &buffer_draw);
+    } else if (mode_clock_params.clock_style ==
+          CLOCK_STYLE_DIGITAL_HOURS_ANALOG_MINS) {
+      draw_large_hours(time_info.tm_hour, &buffer_draw);
+      // +-- 14--++-- 14 --+
+      // |\      || 1    /  |
+      // 14  \   ||   /     14
+      // |      \||/    2   |
+      // +-------41--------+
+      // +-------32--------+
+      // |      /||\        |
+      // 14  /   ||    \    14
+      // |/      ||      \  |
+      // +-- 14--++-- 14 --+
+      // TODO: Draw minutes.
     } else { // Default: CLOCK_STYLE_DIGITAL
       draw_time(&time_info, &buffer_draw);
     }
