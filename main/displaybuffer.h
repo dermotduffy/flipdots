@@ -49,6 +49,7 @@ void buffer_tdf_draw_string_centre(
     const font_info_t* font,
     displaybuffer_t* buffer);
 
+// Adafruit GFX adaptations.
 void buffer_draw_line(
     uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, bool data,
     displaybuffer_t* buffer);
@@ -57,6 +58,13 @@ void buffer_draw_bitmap(
     const uint8_t *bitmap, 
     uint8_t w, uint8_t h, bool data,
     displaybuffer_t* buffer);
+void buffer_fill_triangle(
+    int16_t x0, int16_t y0,
+    int16_t x1, int16_t y1,
+    int16_t x2, int16_t y2,
+    bool data,
+    displaybuffer_t* buffer);
+
 bool buffer_save_if_needed(
     displaybuffer_t* src, displaybuffer_t* dst);
 
