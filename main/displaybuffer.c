@@ -137,3 +137,19 @@ bool buffer_save_if_needed(displaybuffer_t* src, displaybuffer_t* dst) {
   }
   return false;
 }
+
+void buffer_AND(PixelValue value,
+                const displaybuffer_t* src, displaybuffer_t* dst) {
+  assert(src && dst);
+  assert(src->width == dst->width);
+  assert(src->height == dst->height);
+
+  for (uint8_t x = 0; x < src->width; ++x) {
+    for (uint8_t y = 0; y < src->height; ++y) {
+      if (src->data[x][y] & dst->data[x][y]) {
+        raw_write_pixel(x, y, value, dst);
+      }
+    }
+  }
+  dst->modified = true;
+}

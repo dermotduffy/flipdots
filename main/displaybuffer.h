@@ -32,6 +32,9 @@ void buffer_draw_pixel(
     uint8_t x, uint8_t y, PixelValue value, displaybuffer_t* buffer);
 void buffer_inverse(displaybuffer_t* buffer);
 
+void buffer_AND(PixelValue value,
+                const displaybuffer_t* src, displaybuffer_t* dst);
+
 // The dot factory based fonts.
 void buffer_tdf_draw_char(
     uint8_t x, uint8_t y, PixelValue value, char c, const font_info_t* font,
