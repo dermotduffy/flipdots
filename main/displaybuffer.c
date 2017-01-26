@@ -108,6 +108,7 @@ void buffer_tdf_draw_string(
 }
 
 void buffer_tdf_draw_string_centre(
+    int y,
     PixelValue value, 
     const char* s, int gap_between_chars,
     const font_info_t* font,
@@ -116,7 +117,11 @@ void buffer_tdf_draw_string_centre(
       s, gap_between_chars, font);
 
   int start_x = 0;
-  int start_y = (DISPLAY_HEIGHT - font->height) / 2;
+  int start_y = y;
+  if (y < 0) {
+    start_y = (DISPLAY_HEIGHT - font->height) / 2;
+  }
+
   if (text_width_in_pixels < DISPLAY_WIDTH) {
     start_x = (DISPLAY_WIDTH - text_width_in_pixels) / 2;
   }
@@ -138,18 +143,40 @@ bool buffer_save_if_needed(displaybuffer_t* src, displaybuffer_t* dst) {
   return false;
 }
 
-void buffer_AND(PixelValue value,
-                const displaybuffer_t* src, displaybuffer_t* dst) {
+void buffer_fill_from_template(
+    PixelValue value,
+    const displaybuffer_t* src, displaybuffer_t* dst) {
   assert(src && dst);
   assert(src->width == dst->width);
   assert(src->height == dst->height);
 
   for (uint8_t x = 0; x < src->width; ++x) {
     for (uint8_t y = 0; y < src->height; ++y) {
-      if (src->data[x][y] & dst->data[x][y]) {
+      if (src->data[x][y]) {
         raw_write_pixel(x, y, value, dst);
       }
     }
   }
   dst->modified = true;
+}
+
+void buffer_AND(
+    PixelValue value,
+    const displaybuffer_t* a,
+    const displaybuffer_t* b,
+    displaybuffer_t* out) {
+  assert(a && b && out);
+  assert(a->width == b->width);
+  assert(a->width == out->width);
+  assert(a->height == b->height);
+  assert(a->height == out->height);
+
+  for (uint8_t x = 0; x < a->width; ++x) {
+    for (uint8_t y = 0; y < a->height; ++y) {
+      if (a->data[x][y] & b->data[x][y]) {
+        out->data[x][y] = value;
+      }
+    }
+  }
+  out->modified = true;
 }

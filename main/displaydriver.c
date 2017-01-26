@@ -121,8 +121,6 @@ void task_displaydriver_update() {
       }
     }
 
-    ESP_LOGI(LOG_TAG, "[Display update: found work]"); 
-
     // Copy the staging buffer into the pre-live buffer.
     if (first_run || buffer_save_staging_to_prelive()) {
       // Acivate display update workers.
@@ -152,9 +150,6 @@ void task_displaydriver_update() {
 
       // All changes written out.
       buffer_live.modified = false;
-      ESP_LOGI(LOG_TAG, "[Display update task: work complete]"); 
-    } else {
-      ESP_LOGI(LOG_TAG, "[Display update task: found no work]"); 
     }
 
     first_run = false;

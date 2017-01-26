@@ -196,3 +196,52 @@ void buffer_fill_triangle(
     buffer_draw_line(a, y, a+(b-a), y, value, buffer);
   }
 }
+
+// Note: Coordinate based rather than w/h based as in original Adafruit library.
+void buffer_fill_rectangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
+ PixelValue value, displaybuffer_t* buffer) {
+  int16_t x_low = x0 <= x1 ? x0 : x1;
+  int16_t x_high = x0 <= x1 ? x1 : x0;  
+
+  for (int16_t i = x_low; i <= x_high; i++) {
+    buffer_draw_line(i, y0, i, y1, value, buffer);
+  }
+}
+
+void buffer_fill_circle(
+    int16_t x0, int16_t y0, int16_t r,
+    PixelValue value, displaybuffer_t* buffer) {
+  buffer_draw_line(x0, y0-r, x0, y0+r, value, buffer);
+  buffer_fill_circle_helper(x0, y0, r, 3, 0, value, buffer);
+}
+
+void buffer_fill_circle_helper(
+    int16_t x0, int16_t y0, int16_t r,
+    uint8_t cornername, int16_t delta,
+    PixelValue value, displaybuffer_t* buffer) {
+  int16_t f     = 1 - r;
+  int16_t ddF_x = 1;
+  int16_t ddF_y = -2 * r;
+  int16_t x     = 0;
+  int16_t y     = r;
+
+  while (x<y) {
+    if (f >= 0) {
+      y--;
+      ddF_y += 2;
+      f     += ddF_y;
+    }
+    x++;
+    ddF_x += 2;
+    f     += ddF_x;
+
+    if (cornername & 0x1) {
+      buffer_draw_line(x0+x, y0-y, x0+x, y0+y+delta, value, buffer);
+      buffer_draw_line(x0+y, y0-x, x0+y, y0+x+delta, value, buffer);
+    }
+    if (cornername & 0x2) {
+      buffer_draw_line(x0-x, y0-y, x0-x, y0+y+delta, value, buffer);
+      buffer_draw_line(x0-y, y0-x, x0-y, y0+x+delta, value, buffer);
+    }
+  }
+}
