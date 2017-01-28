@@ -89,6 +89,9 @@ void buffer_fill_circle_helper(
     int16_t x0, int16_t y0, int16_t r,
     uint8_t cornername, int16_t delta,
     PixelValue value, displaybuffer_t* buffer);
+void buffer_fill_circle_centre(
+    int16_t r, PixelValue value, displaybuffer_t* buffer);
+
 void buffer_fill_rectangle(
     int16_t x0, int16_t y0,
     int16_t x1, int16_t y1,

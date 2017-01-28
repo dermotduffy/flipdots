@@ -27,6 +27,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdlib.h>
 
+#include "flipdots-base.h"
 #include "displaybuffer.h"
 
 // **************
@@ -245,3 +246,19 @@ void buffer_fill_circle_helper(
     }
   }
 }
+
+void buffer_fill_circle_centre(
+    int16_t r, PixelValue value, displaybuffer_t* displaybuffer) {
+  int center = (DISPLAY_WIDTH/2)-1;
+  if (DISPLAY_WIDTH % 2 == 0) {
+    // To get circle to appear centered on an non-odd sized display, we draw
+    // four overlapping circles.
+    buffer_fill_circle(center, center, r, value, displaybuffer);
+    buffer_fill_circle(center, center+1, r, value, displaybuffer);
+    buffer_fill_circle(center+1, center, r, value, displaybuffer);
+    buffer_fill_circle(center+1, center+1, r, value, displaybuffer);
+  } else {
+    buffer_fill_circle(center, center, r+1, value, displaybuffer);
+  }
+}
+

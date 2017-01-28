@@ -37,9 +37,12 @@
 
 // Push the digits down the clock face by this number of pixels
 // to give the appearance of being centered.
-#define FONT_CLOCK_SWEEP_OFFSET_PIXELS   6
-#define FONT_LARGE_HOUR_OFFSET_PIXELS    4
-#define FONT_QUESTION_MARK_OFFSET_PIXELS 3
+#define FONT_CLOCK_SWEEP_OFFSET_PIXELS         6
+#define FONT_SMALL_CLOCK_SWEEP_OFFSET_PIXELS   8
+#define FONT_LARGE_HOUR_OFFSET_PIXELS          4
+#define FONT_QUESTION_MARK_OFFSET_PIXELS       3
+
+#define HOLLOW_CLOCK_FACE_INNER_RADIUS         7
 
 SemaphoreHandle_t mode_clock_mutex = NULL;
 ModeClockParameters mode_clock_params;
@@ -54,6 +57,7 @@ static const font_info_t* font_time_medium = &gohufont_11b_font_info;
 
 static displaybuffer_t buffer_minute_hand;
 static displaybuffer_t buffer_clock_face;
+static displaybuffer_t buffer_clock_face_hollow;
 static displaybuffer_t buffer_template;
 
 static void draw_large_hours(
@@ -87,6 +91,61 @@ static void draw_time(
 
   buffer_tdf_draw_string_centre(
     -1, PIXEL_YELLOW, time_buffer, GAP_BETWEEN_DIGITS, font_time_medium, displaybuffer);
+}
+
+static void draw_analog_minutes(
+    const struct tm* time_info, displaybuffer_t* displaybuffer) {
+  // +-- 14--++-- 14 --+
+  // |\      || 1    /  |
+  // 14  \   ||   /     14
+  // |      \||/    2   |
+  // +-------41--------+
+  // +-------32--------+
+  // |      /||\        |
+  // 14  /   ||   \     14
+  // |/      ||      \  |
+  // +-- 14--++-- 14 --+
+  int secs = (time_info->tm_min*60) + time_info->tm_sec;
+  int chosen_end_point = (TOTAL_MIN_HAND_END_POINTS * secs) / (60*60);
+  int x = DISPLAY_WIDTH/2, y = 0;
+  int center_x = x;
+  int center_y = (DISPLAY_HEIGHT/2)-1;
+
+  for (int i = 0; i < chosen_end_point; ++i) {
+    buffer_draw_line(center_x, center_y,
+                     x, y, 
+                     PIXEL_YELLOW, displaybuffer);
+
+    if (x < (DISPLAY_WIDTH-1) && y == 0) {
+      x++;
+    } else if (x == (DISPLAY_WIDTH-1) && y < (DISPLAY_HEIGHT/2)-1) {
+      y++;
+    } else if (x == (DISPLAY_WIDTH-1) && y == (DISPLAY_HEIGHT/2)-1) {
+      center_y++;
+      y++;
+    } else if (x == (DISPLAY_WIDTH-1) && y < DISPLAY_HEIGHT-1) {
+      y++;
+    } else if (x > DISPLAY_WIDTH/2 && y == DISPLAY_HEIGHT-1) {
+      x--;
+    } else if (x == (DISPLAY_WIDTH/2) && y == DISPLAY_HEIGHT-1) {
+      center_x--;
+      x--;
+    } else if (x > 0 && y == DISPLAY_HEIGHT-1) {
+      x--;
+    } else if (x == 0 && y > (DISPLAY_HEIGHT/2)) {
+      y--;
+    } else if (x == 0 && y == (DISPLAY_HEIGHT/2)) {
+      center_y--;
+      y--;
+    } else if (x == 0 && y > 0) {
+      y--;
+    } else if (x < (DISPLAY_WIDTH/2)-1 && y == 0) {
+      x++;
+    } else {
+      // Should not get here.
+      break;
+    }
+  }
 }
 
 static void task_mode_clock(void* pvParameters) {
@@ -128,65 +187,26 @@ static void task_mode_clock(void* pvParameters) {
       draw_large_hours(time_info.tm_hour, FONT_CLOCK_SWEEP_OFFSET_PIXELS,
           font_clock_sweep, &buffer_draw);
 
-      // +-- 14--++-- 14 --+
-      // |\      || 1    /  |
-      // 14  \   ||   /     14
-      // |      \||/    2   |
-      // +-------41--------+
-      // +-------32--------+
-      // |      /||\        |
-      // 14  /   ||   \     14
-      // |/      ||      \  |
-      // +-- 14--++-- 14 --+
-
       buffer_wipe(&buffer_minute_hand);
+      draw_analog_minutes(&time_info, &buffer_minute_hand);
+
       buffer_wipe(&buffer_template);
-
-      int secs = (time_info.tm_min*60) + time_info.tm_sec;
-      int chosen_end_point =
-        (TOTAL_MIN_HAND_END_POINTS * secs) / (60*60);
-      int x = DISPLAY_WIDTH/2, y = 0;
-      int center_x = x;
-      int center_y = (DISPLAY_HEIGHT/2)-1;
-
-      for (int i = 0; i < chosen_end_point; ++i) {
-        buffer_draw_line(center_x, center_y,
-                         x, y, 
-                         PIXEL_YELLOW, &buffer_minute_hand);
-
-        if (x < (DISPLAY_WIDTH-1) && y == 0) {
-          x++;
-        } else if (x == (DISPLAY_WIDTH-1) && y < (DISPLAY_HEIGHT/2)-1) {
-          y++;
-        } else if (x == (DISPLAY_WIDTH-1) && y == (DISPLAY_HEIGHT/2)-1) {
-          center_y++;
-          y++;
-        } else if (x == (DISPLAY_WIDTH-1) && y < DISPLAY_HEIGHT-1) {
-          y++;
-        } else if (x > DISPLAY_WIDTH/2 && y == DISPLAY_HEIGHT-1) {
-          x--;
-        } else if (x == (DISPLAY_WIDTH/2) && y == DISPLAY_HEIGHT-1) {
-          center_x--;
-          x--;
-        } else if (x > 0 && y == DISPLAY_HEIGHT-1) {
-          x--;
-        } else if (x == 0 && y > (DISPLAY_HEIGHT/2)) {
-          y--;
-        } else if (x == 0 && y == (DISPLAY_HEIGHT/2)) {
-          center_y--;
-          y--;
-        } else if (x == 0 && y > 0) {
-          y--;
-        } else if (x < (DISPLAY_WIDTH/2)-1 && y == 0) {
-          x++;
-        } else {
-          // Should not get here.
-          break;
-        }
-      }
       buffer_AND(PIXEL_YELLOW,
                  &buffer_minute_hand, &buffer_clock_face, &buffer_template);
       buffer_fill_from_template(PIXEL_INVERSE, &buffer_template, &buffer_draw);
+    } else if (mode_clock_params.clock_style ==
+          CLOCK_STYLE_SMALL_DIGITAL_HOURS_ANALOG_MINS) {
+      draw_large_hours(time_info.tm_hour, FONT_SMALL_CLOCK_SWEEP_OFFSET_PIXELS,
+          font_time_medium, &buffer_draw);
+
+      buffer_wipe(&buffer_minute_hand);
+      draw_analog_minutes(&time_info, &buffer_minute_hand);
+
+      buffer_wipe(&buffer_template);
+      buffer_AND(PIXEL_YELLOW,
+                 &buffer_minute_hand, &buffer_clock_face_hollow, &buffer_template);
+      buffer_fill_from_template(PIXEL_YELLOW, &buffer_template, &buffer_draw);
+
     } else { // Default: CLOCK_STYLE_DIGITAL
       draw_time(&time_info, &buffer_draw);
     }
@@ -211,23 +231,19 @@ void mode_clock_setup() {
 
   buffer_init(DISPLAY_WIDTH, DISPLAY_HEIGHT, &buffer_minute_hand);
   buffer_init(DISPLAY_WIDTH, DISPLAY_HEIGHT, &buffer_clock_face);
+  buffer_init(DISPLAY_WIDTH, DISPLAY_HEIGHT, &buffer_clock_face_hollow);
   buffer_init(DISPLAY_WIDTH, DISPLAY_HEIGHT, &buffer_template);
 
   // Clock mode designed for a square display.
   assert (DISPLAY_HEIGHT == DISPLAY_WIDTH);
+  buffer_fill_circle_centre(
+      (DISPLAY_WIDTH/2)-1, PIXEL_YELLOW, &buffer_clock_face);
 
-  if (DISPLAY_WIDTH % 2 == 0) {
-    // To get circle to appear centered on an non-odd sized display, we draw
-    // four overlapping circles.
-    int r = (DISPLAY_WIDTH/2)-1;
-    buffer_fill_circle(r, r, r, PIXEL_YELLOW, &buffer_clock_face);
-    buffer_fill_circle(r, r+1, r, PIXEL_YELLOW, &buffer_clock_face);
-    buffer_fill_circle(r+1, r, r, PIXEL_YELLOW, &buffer_clock_face);
-    buffer_fill_circle(r+1, r+1, r, PIXEL_YELLOW, &buffer_clock_face);
-  } else {
-    int r = (DISPLAY_WIDTH/2);
-    buffer_fill_circle(r, r, r, PIXEL_YELLOW, &buffer_clock_face);
-  }
+  // Copy clockface, then hollow it out onto a different buffer.
+  buffer_fill_from_template(
+      PIXEL_YELLOW, &buffer_clock_face, &buffer_clock_face_hollow);
+  buffer_fill_circle_centre(
+      HOLLOW_CLOCK_FACE_INNER_RADIUS, PIXEL_BLACK, &buffer_clock_face_hollow);
 }
 
 void mode_clock_start() {
