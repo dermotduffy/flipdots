@@ -126,20 +126,44 @@ bool translate_to_board_space(
     return false;
   }
 
-  if (y_in >= FLIP_BOARD_HEIGHT) {
+  uint8_t x_in_r, y_in_r;
+
+  switch (DISPLAY_ROTATION) {
+    case DISPLAY_ROTATION_0:
+      x_in_r = x_in;
+      y_in_r = y_in;
+      break;
+
+    case DISPLAY_ROTATION_90:
+      x_in_r = DISPLAY_HEIGHT - y_in - 1;
+      y_in_r = x_in;
+      break;
+
+    case DISPLAY_ROTATION_180:
+      y_in_r = DISPLAY_HEIGHT - y_in - 1;
+      x_in_r = DISPLAY_WIDTH - x_in - 1;
+      break; 
+
+    case DISPLAY_ROTATION_270:
+      y_in_r = DISPLAY_WIDTH - x_in - 1;
+      x_in_r = y_in;
+      break;
+  }
+
+  if (y_in_r >= FLIP_BOARD_HEIGHT) {
     *board = FLIP_BOARD_BOTTOM;
   } else {
     *board = FLIP_BOARD_TOP;     
   }
 
   if (*board == FLIP_BOARD_TOP) {
-    *y_out = y_in + 1;  // Boards rows are indexed from 1.
-    *x_out = FLIP_BOARD_WIDTH - x_in; // Boards cols are index right to left.
+    *y_out = y_in_r + 1;  // Boards rows are indexed from 1.
+    *x_out = FLIP_BOARD_WIDTH - x_in_r; // Boards cols are index right to left.
     *data_out = data_in;
   } else {
     // Bottom display is upside down.
-    *y_out = FLIP_BOARD_HEIGHT - (y_in - FLIP_BOARD_HEIGHT);
-    *x_out = x_in + 1; 
+    *y_out = FLIP_BOARD_HEIGHT - (y_in_r - FLIP_BOARD_HEIGHT);
+    *x_out = x_in_r + 1; 
 
     // The bottom board is upside down, with the 'dots' physically
     // reversed so the two boards are dot-aligned. Thus the data bit

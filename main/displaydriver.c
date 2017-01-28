@@ -48,11 +48,18 @@ typedef struct {
   displaybuffer_t* dst;
 } displaydriver_worker_config_t;
 
+// Workers need to be aligned with the physical hardware, so rotation needs to
+// be taken into account.
 displaydriver_worker_config_t displaydriver_worker_top_config = {
   .start_x = 0,
-  .end_x = DISPLAY_WIDTH-1,
   .start_y = 0,
+#if DISPLAY_ROTATION == DISPLAY_ROTATION_90 || DISPLAY_ROTATION == DISPLAY_ROTATION_270
+  .end_x = (DISPLAY_WIDTH / 2) - 1,
+  .end_y = (DISPLAY_HEIGHT - 1),
+#else
+  .end_x = (DISPLAY_WIDTH - 1),
   .end_y = (DISPLAY_HEIGHT / 2) - 1,
+#endif
   .event_group = &display_event_group,
   .activate_bit = DISPLAY_EVENT_WORKER_TOP_ACTIVATE_BIT,
   .activate_full_bit = DISPLAY_EVENT_WORKER_TOP_ACTIVATE_FULL_BIT,
@@ -61,9 +68,14 @@ displaydriver_worker_config_t displaydriver_worker_top_config = {
   .dst = &buffer_live,
 };
 displaydriver_worker_config_t displaydriver_worker_bot_config = {
+#if DISPLAY_ROTATION == DISPLAY_ROTATION_90 || DISPLAY_ROTATION == DISPLAY_ROTATION_270
+  .start_x = (DISPLAY_WIDTH / 2),
+  .start_y = 0,
+#else
   .start_x = 0,
-  .end_x = DISPLAY_WIDTH-1,
   .start_y = (DISPLAY_HEIGHT / 2),
+#endif
+  .end_x = DISPLAY_WIDTH-1,
   .end_y = DISPLAY_HEIGHT - 1,
   .event_group = &display_event_group,
   .activate_bit = DISPLAY_EVENT_WORKER_BOT_ACTIVATE_BIT,
@@ -189,8 +201,15 @@ void task_displaydriver_update_worker(void* pvParameters) {
       continue;
     }
 
+// Small visual tweak: Keep the 'sweep' of the display refresh coming in from
+// the 'sides' of the individual flipboards, regardless of the rotation.
+#if DISPLAY_ROTATION == DISPLAY_ROTATION_90 || DISPLAY_ROTATION == DISPLAY_ROTATION_270
+    for (uint8_t y = config->start_y; y <= config->end_y; ++y) {
+      for (uint8_t x = config->start_x; x <= config->end_x; ++x) {
+#else
     for (uint8_t x = config->start_x; x <= config->end_x; ++x) {
       for (uint8_t y = config->start_y; y <= config->end_y; ++y) {
+#endif
         // Only write out the bits that are different:
         // Write to a flip-dot display is extremely time expensive per pixel,
         // e.g. >1ms per pixel.
