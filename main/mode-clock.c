@@ -261,9 +261,8 @@ void mode_clock_start() {
 void mode_clock_network_input(const uint8_t* data, int bytes) {
   // mode_clock_mutex will already be held by orchestrator.
   assert(data != NULL);
-  assert(bytes == 1);  
 
-  if (*data <= CLOCK_STYLE_MAX) {
+  if (bytes == 1 && *data <= CLOCK_STYLE_MAX) {
     ESP_LOGW(LOG_TAG, "Setting clock style: %i", *data);
     mode_clock_params.clock_style = *data;
   }
