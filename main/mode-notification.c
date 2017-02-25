@@ -34,7 +34,7 @@ static void draw_notification(displaybuffer_t* buffer) {
 }
 
 static void task_mode_notification(void* pvParameters) {
-  bool inverse_the_icon = false;
+  bool invert_the_icon = false;
 
   while (true) {
     mutex_lock(mode_notification_mutex);
@@ -42,11 +42,11 @@ static void task_mode_notification(void* pvParameters) {
     buffer_wipe(&buffer_draw);
     draw_notification(&buffer_draw);
 
-    if (inverse_the_icon) {
+    if (invert_the_icon) {
       buffer_inverse(&buffer_draw);
     }
 
-    inverse_the_icon = !inverse_the_icon;
+    invert_the_icon = !invert_the_icon;
     buffer_commit_drawing();
 
     // Release the lock, and wait until the next run is due.
