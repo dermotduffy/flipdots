@@ -31,7 +31,8 @@ void app_main(void)
   displaydriver_start();
 
   // === Display is functional ===
-  // On start, do an all-pixel test.
+  // On start, do an all-pixel test. This also serves to wipe whatever was
+  // previously on the display.
   // (Must be prior to orchestrator taking over the display).
   displaydriver_testpattern();
 
