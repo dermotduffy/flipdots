@@ -27,6 +27,6 @@ extern ModeNotificationParameters mode_notification_params;  // Protected by mod
 
 void mode_notification_setup();
 void mode_notification_start();
-void mode_notification_network_input(const uint8_t* data, int bytes);
+bool mode_notification_network_input(const uint8_t* data, int bytes);
 
 #endif

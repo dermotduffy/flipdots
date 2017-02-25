@@ -28,6 +28,6 @@ extern ModeClockParameters mode_clock_params;  // Protected by mode_clock_mutex.
 
 void mode_clock_setup();  // Prepare task.
 void mode_clock_start();  // Start task.
-void mode_clock_network_input(const uint8_t* data, int bytes);
+bool mode_clock_network_input(const uint8_t* data, int bytes);
 
 #endif

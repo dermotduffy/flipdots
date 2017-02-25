@@ -79,12 +79,14 @@ void mode_notification_start() {
       tskNO_AFFINITY) == pdTRUE);
 }
 
-void mode_notification_network_input(const uint8_t* data, int bytes) {
+bool mode_notification_network_input(const uint8_t* data, int bytes) {
   // mode_notification_mutex will already be held by orchestrator.
   assert(data != NULL);
 
   if (bytes == 1 && *data <= NOTIFICATION_ICON_MAX) {
     ESP_LOGW(LOG_TAG, "Setting notification icon: %i", *data);
     mode_notification_params.notification_icon = *data;
+    return true;
   }
+  return false;
 }

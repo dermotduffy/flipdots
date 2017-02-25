@@ -9,9 +9,9 @@
 #include "mutex-util.h"
 #include "network.h"
 
-#define TASK_ORCHESTRATOR_NAME        "orchestrator"
-#define TASK_ORCHESTRATOR_STACK_WORDS 2<<11
-#define TASK_ORCHESTRATOR_PRORITY     6
+#define TASK_ORCHESTRATOR_NAME           "orchestrator"
+#define TASK_ORCHESTRATOR_STACK_WORDS    2<<11
+#define TASK_ORCHESTRATOR_PRORITY        6
 
 #define TIME_DELAY_ORCHESTRATOR_MS       1*1000
 
@@ -38,25 +38,28 @@ bool orchestrator_network_input(
 
     switch (mode) {
       case 'C':
-        mode_clock_network_input(
-            mode_specific_data, network_data_buf_used_size-1);
-        *new_runnable = mode_clock_mutex;
-        return true;
+        if (mode_clock_network_input(
+            mode_specific_data, network_data_buf_used_size-1)) {
+          *new_runnable = mode_clock_mutex;
+          return true;
+        }
+        break;
       case 'N':
-        mode_notification_network_input(
-            mode_specific_data, network_data_buf_used_size-1);
-        *new_runnable = mode_notification_mutex;
-        return true;
+        if (mode_notification_network_input(
+            mode_specific_data, network_data_buf_used_size-1)) {
+          *new_runnable = mode_notification_mutex;
+          return true;
+        }
+        break;
       default:
         ESP_LOGW(LOG_TAG, "Received unrecognised network data. Ignoring.");
     }
-  } else {
-    mutex_unlock(network_data_mutex);
-
-    ESP_LOGW(LOG_TAG,
-        "Received unrecognised network data size (%i). Ignoring.",
-        network_data_buf_used_size);
   }
+  mutex_unlock(network_data_mutex);
+
+  ESP_LOGW(LOG_TAG,
+      "Received unrecognised network data (size=%i). Ignoring.",
+      network_data_buf_used_size);
   return false;
 }
 

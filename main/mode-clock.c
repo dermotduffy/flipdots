@@ -258,12 +258,14 @@ void mode_clock_start() {
       tskNO_AFFINITY) == pdTRUE);
 }
 
-void mode_clock_network_input(const uint8_t* data, int bytes) {
+bool mode_clock_network_input(const uint8_t* data, int bytes) {
   // mode_clock_mutex will already be held by orchestrator.
   assert(data != NULL);
 
   if (bytes == 1 && *data <= CLOCK_STYLE_MAX) {
     ESP_LOGW(LOG_TAG, "Setting clock style: %i", *data);
     mode_clock_params.clock_style = *data;
+    return true;
   }
+  return false;
 }
