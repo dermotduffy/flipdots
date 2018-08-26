@@ -6,26 +6,19 @@
 #include "freertos/event_groups.h"
 #include "esp_log.h"
 #include "esp_system.h"
-#include "nvs_flash.h"
+
+#include "mgos.h"
 
 #include "displaydriver.h"
-#include "network.h"
 #include "orchestrator.h"
-#include "time-util.h"
 
 const static char *LOG_TAG = "flipdots";
 
 // ****
 // Main
 // ****
-void app_main(void)
-{
-  nvs_flash_init();
-
-  networking_setup();
-  networking_start();
-
-  time_sntp_start();
+enum mgos_app_init_result mgos_app_init(void) {
+  ESP_LOGI(LOG_TAG, "Application start ...");
 
   displaydriver_setup();
   displaydriver_start();
@@ -39,4 +32,6 @@ void app_main(void)
   // Setup & start the orchestrator.
   orchestrator_setup();
   orchestrator_start();
+
+  return MGOS_APP_INIT_SUCCESS;
 }

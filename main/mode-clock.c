@@ -11,8 +11,6 @@
 #include "displaybuffer.h"
 #include "displaydriver.h"
 #include "mode-clock.h"
-#include "mutex-util.h"
-#include "time-util.h"
 
 #include "gohufont_11b.h"
 #include "liberation_sans_16ptb.h"
@@ -22,9 +20,6 @@
 #define GAP_BETWEEN_DIGITS             1
 
 #define MINS_PER_HOUR                  60
-
-#define TIME_DELAY_BETWEEN_RUNS_MS     1*1000
-#define TIME_DELAY_IF_ERROR_MS         10*1000
 
 // Use 59 steps rather than 60, in order to ensure the last minute of the hour
 // shows the board full rather than almost full. Error with these calculations
@@ -44,12 +39,10 @@
 
 #define HOLLOW_CLOCK_FACE_INNER_RADIUS         7
 
-SemaphoreHandle_t mode_clock_mutex = NULL;
 ModeClockParameters mode_clock_params;
 
 const static char *LOG_TAG = "mode-clock";
 
-static xTaskHandle task_mode_clock_handle;
 static char time_buffer[TIME_BUFFER_SIZE];
 static const font_info_t* font_clock_sweep = &liberation_sans_16ptb_font_info;
 static const font_info_t* font_large = &liberation_sans_20pt_font_info;
@@ -59,6 +52,19 @@ static displaybuffer_t buffer_minute_hand;
 static displaybuffer_t buffer_clock_face;
 static displaybuffer_t buffer_clock_face_hollow;
 static displaybuffer_t buffer_template;
+
+bool get_time_info(struct tm* time_info) {
+  assert(time_info != NULL);
+
+  time_t current_time;
+  time(&current_time);
+  localtime_r(&current_time, time_info);
+
+  // tm_year is years since 1900. If unset, tm_year will be
+  // (1970-1900)=~70. Just compare against 2017, if it's less assume
+  // year is unset.
+  return time_info->tm_year >= (2017-1900);
+}
 
 static void draw_large_hours(
     int hours, int y_offset, const font_info_t* font,
@@ -148,86 +154,76 @@ static void draw_analog_minutes(
   }
 }
 
-static void task_mode_clock(void* pvParameters) {
+int mode_clock_draw() {
   struct tm time_info;
-  bool ever_had_valid_time = false;
 
-  while (true) {
-    mutex_lock(mode_clock_mutex);
-
+  if (!get_time_info(&time_info)) {
+    ESP_LOGI(LOG_TAG, "Could not draw clock, don't know what time it is!");
+ 
     // Display an error message if there is no valid time available.
-    if (!ever_had_valid_time) {
-      if (have_valid_time()) {
-        ever_had_valid_time = true;
-      } else {
-        buffer_wipe(&buffer_draw);
-        buffer_tdf_draw_string_centre(
-            FONT_QUESTION_MARK_OFFSET_PIXELS, PIXEL_YELLOW, "?",
-            GAP_BETWEEN_DIGITS, font_large, &buffer_draw);
-        buffer_commit_drawing();
-
-        mutex_unlock(mode_clock_mutex);
-        vTaskDelay(TIME_DELAY_IF_ERROR_MS / portTICK_PERIOD_MS);
-        continue;
-      }
-    }
-
-    // Get the current time.
-    get_time_info(&time_info);
-
-    // Update display buffer.
     buffer_wipe(&buffer_draw);
-
-    if (mode_clock_params.clock_style == CLOCK_STYLE_HOUR_ONLY) {
-      draw_large_hours(time_info.tm_hour, FONT_LARGE_HOUR_OFFSET_PIXELS,
-          font_large, &buffer_draw);
-      draw_dot_minutes(time_info.tm_min, &buffer_draw);
-    } else if (mode_clock_params.clock_style ==
-          CLOCK_STYLE_DIGITAL_HOURS_ANALOG_MINS) {
-      draw_large_hours(time_info.tm_hour, FONT_CLOCK_SWEEP_OFFSET_PIXELS,
-          font_clock_sweep, &buffer_draw);
-
-      buffer_wipe(&buffer_minute_hand);
-      draw_analog_minutes(&time_info, &buffer_minute_hand);
-
-      buffer_wipe(&buffer_template);
-      buffer_AND(PIXEL_YELLOW,
-                 &buffer_minute_hand, &buffer_clock_face, &buffer_template);
-      buffer_fill_from_template(PIXEL_INVERSE, &buffer_template, &buffer_draw);
-    } else if (mode_clock_params.clock_style ==
-          CLOCK_STYLE_SMALL_DIGITAL_HOURS_ANALOG_MINS) {
-      draw_large_hours(time_info.tm_hour, FONT_SMALL_CLOCK_SWEEP_OFFSET_PIXELS,
-          font_time_medium, &buffer_draw);
-
-      buffer_wipe(&buffer_minute_hand);
-      draw_analog_minutes(&time_info, &buffer_minute_hand);
-
-      buffer_wipe(&buffer_template);
-      buffer_AND(PIXEL_YELLOW,
-                 &buffer_minute_hand, &buffer_clock_face_hollow, &buffer_template);
-      buffer_fill_from_template(PIXEL_YELLOW, &buffer_template, &buffer_draw);
-
-    } else { // Default: CLOCK_STYLE_DIGITAL
-      draw_time(&time_info, &buffer_draw);
-    }
-    
+    buffer_tdf_draw_string_centre(
+        FONT_QUESTION_MARK_OFFSET_PIXELS, PIXEL_YELLOW, "?",
+        GAP_BETWEEN_DIGITS, font_large, &buffer_draw);
     buffer_commit_drawing();
-    // Release the lock, and wait until the next run is due.
-    mutex_unlock(mode_clock_mutex);
-    vTaskDelay(TIME_DELAY_BETWEEN_RUNS_MS / portTICK_PERIOD_MS);
-  }
+    return CLOCK_TIME_DELAY_BETWEEN_DRAWS_ERROR_MS; 
+  } 
 
-  // Never reached.
-  vTaskDelete(NULL);
-  return;
+  // Update display buffer.
+  buffer_wipe(&buffer_draw);
+
+  if (mode_clock_params.clock_style == CLOCK_STYLE_HOUR_ONLY) {
+    draw_large_hours(time_info.tm_hour, FONT_LARGE_HOUR_OFFSET_PIXELS,
+        font_large, &buffer_draw);
+    draw_dot_minutes(time_info.tm_min, &buffer_draw);
+  } else if (mode_clock_params.clock_style ==
+        CLOCK_STYLE_DIGITAL_HOURS_ANALOG_MINS) {
+    draw_large_hours(time_info.tm_hour, FONT_CLOCK_SWEEP_OFFSET_PIXELS,
+        font_clock_sweep, &buffer_draw);
+
+    buffer_wipe(&buffer_minute_hand);
+    draw_analog_minutes(&time_info, &buffer_minute_hand);
+
+    buffer_wipe(&buffer_template);
+    buffer_AND(PIXEL_YELLOW,
+               &buffer_minute_hand, &buffer_clock_face, &buffer_template);
+    buffer_fill_from_template(PIXEL_INVERSE, &buffer_template, &buffer_draw);
+  } else if (mode_clock_params.clock_style ==
+        CLOCK_STYLE_SMALL_DIGITAL_HOURS_ANALOG_MINS) {
+    draw_large_hours(time_info.tm_hour, FONT_SMALL_CLOCK_SWEEP_OFFSET_PIXELS,
+        font_time_medium, &buffer_draw);
+
+    buffer_wipe(&buffer_minute_hand);
+    draw_analog_minutes(&time_info, &buffer_minute_hand);
+
+    buffer_wipe(&buffer_template);
+    buffer_AND(PIXEL_YELLOW,
+               &buffer_minute_hand, &buffer_clock_face_hollow, &buffer_template);
+    buffer_fill_from_template(PIXEL_YELLOW, &buffer_template, &buffer_draw);
+
+  } else { // Default: CLOCK_STYLE_DIGITAL
+    draw_time(&time_info, &buffer_draw);
+  }
+    
+  buffer_commit_drawing();
+  
+  return CLOCK_TIME_DELAY_BETWEEN_DRAWS_MS;
+}
+
+bool mode_clock_set_style(int style) {
+  if (style < CLOCK_STYLE_MIN || style > CLOCK_STYLE_MAX) {
+    ESP_LOGW(LOG_TAG, "Clock style must be >= %d and <= %d",
+        CLOCK_STYLE_MIN, CLOCK_STYLE_MAX);
+    return false;
+  }
+  ESP_LOGI(LOG_TAG, "Setting clock style: %i", style);
+
+  mode_clock_params.clock_style = style;
+  return true;
 }
 
 void mode_clock_setup() {
-  mode_clock_mutex = xSemaphoreCreateMutex();
-
-  mutex_lock(mode_clock_mutex);
   mode_clock_params.clock_style = CLOCK_STYLE_DEFAULT;
-  mutex_unlock(mode_clock_mutex);
 
   buffer_init(DISPLAY_WIDTH, DISPLAY_HEIGHT, &buffer_minute_hand);
   buffer_init(DISPLAY_WIDTH, DISPLAY_HEIGHT, &buffer_clock_face);
@@ -244,28 +240,4 @@ void mode_clock_setup() {
       PIXEL_YELLOW, &buffer_clock_face, &buffer_clock_face_hollow);
   buffer_fill_circle_centre(
       HOLLOW_CLOCK_FACE_INNER_RADIUS, PIXEL_BLACK, &buffer_clock_face_hollow);
-}
-
-void mode_clock_start() {
-  // mode_clock_mutex will already be held by orchestrator.
-  configASSERT(xTaskCreatePinnedToCore(
-      task_mode_clock,
-      TASK_MODE_CLOCK_NAME,
-      TASK_MODE_CLOCK_STACK_WORDS,
-      NULL,
-      TASK_MODE_CLOCK_PRIORITY,
-      &task_mode_clock_handle,
-      tskNO_AFFINITY) == pdTRUE);
-}
-
-bool mode_clock_network_input(const uint8_t* data, int bytes) {
-  // mode_clock_mutex will already be held by orchestrator.
-  assert(data != NULL);
-
-  if (bytes == 1 && *data <= CLOCK_STYLE_MAX) {
-    ESP_LOGW(LOG_TAG, "Setting clock style: %i", *data);
-    mode_clock_params.clock_style = *data;
-    return true;
-  }
-  return false;
 }

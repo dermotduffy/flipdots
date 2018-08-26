@@ -12,12 +12,12 @@
 
 #define TASK_DISPLAYDRIVER_UPDATE_NAME               "displaydriver"
 #define TASK_DISPLAYDRIVER_UPDATE_STACK_WORDS        2<<11
-#define TASK_DISPLAYDRIVER_UPDATE_PRORITY            4
+#define TASK_DISPLAYDRIVER_UPDATE_PRIORITY           4
 
 #define TASK_DISPLAYDRIVER_UPDATE_WORKER_TOP_NAME    "displaydriver-worker-top"
 #define TASK_DISPLAYDRIVER_UPDATE_WORKER_BOT_NAME    "displaydriver-worker-bot"
 #define TASK_DISPLAYDRIVER_UPDATE_WORKER_STACK_WORDS 2<<11
-#define TASK_DISPLAYDRIVER_UPDATE_WORKER_PRORITY     5
+#define TASK_DISPLAYDRIVER_UPDATE_WORKER_PRIORITY    5
 
 #define TIME_DELAY_DISPLAYDRIVER_TEST_MS             1*1000
 
@@ -248,7 +248,7 @@ void displaydriver_start() {
       TASK_DISPLAYDRIVER_UPDATE_WORKER_TOP_NAME,
       TASK_DISPLAYDRIVER_UPDATE_WORKER_STACK_WORDS,
       &displaydriver_worker_top_config,
-      TASK_DISPLAYDRIVER_UPDATE_WORKER_PRORITY,
+      TASK_DISPLAYDRIVER_UPDATE_WORKER_PRIORITY,
       &task_displaydriver_update_worker_top_handle,
       tskNO_AFFINITY) == pdTRUE);
 
@@ -257,7 +257,7 @@ void displaydriver_start() {
       TASK_DISPLAYDRIVER_UPDATE_WORKER_BOT_NAME,
       TASK_DISPLAYDRIVER_UPDATE_WORKER_STACK_WORDS,
       &displaydriver_worker_bot_config,
-      TASK_DISPLAYDRIVER_UPDATE_WORKER_PRORITY,
+      TASK_DISPLAYDRIVER_UPDATE_WORKER_PRIORITY,
       &task_displaydriver_update_worker_bot_handle,
       tskNO_AFFINITY) == pdTRUE);
 
@@ -267,7 +267,7 @@ void displaydriver_start() {
       TASK_DISPLAYDRIVER_UPDATE_NAME,
       TASK_DISPLAYDRIVER_UPDATE_STACK_WORDS,
       NULL,
-      TASK_DISPLAYDRIVER_UPDATE_PRORITY,
+      TASK_DISPLAYDRIVER_UPDATE_PRIORITY,
       &task_displaydriver_update_handle,
       tskNO_AFFINITY) == pdTRUE);
 }

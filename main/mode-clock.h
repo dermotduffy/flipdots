@@ -1,18 +1,14 @@
 #ifndef MODE_CLOCK_H
 #define MODE_CLOCK_H
 
-#include "freertos/semphr.h"
-
 #include "mode-base.h"
-#include "displaybuffer.h"
-
-#define TASK_MODE_CLOCK_NAME        "mode-clock"
-#define TASK_MODE_CLOCK_STACK_WORDS 2<<11
-#define TASK_MODE_CLOCK_PRIORITY    TASK_MODE_PRIORITY
 
 #define CLOCK_STYLE_MIN             0
 #define CLOCK_STYLE_MAX             CLOCK_STYLE_SMALL_DIGITAL_HOURS_ANALOG_MINS
 #define CLOCK_STYLE_DEFAULT         CLOCK_STYLE_SMALL_DIGITAL_HOURS_ANALOG_MINS
+
+#define CLOCK_TIME_DELAY_BETWEEN_DRAWS_MS       1*500
+#define CLOCK_TIME_DELAY_BETWEEN_DRAWS_ERROR_MS 10*1000
 
 typedef struct {
   enum style {
@@ -23,11 +19,10 @@ typedef struct {
   } clock_style;
 } ModeClockParameters;
 
-extern SemaphoreHandle_t mode_clock_mutex;
-extern ModeClockParameters mode_clock_params;  // Protected by mode_clock_mutex.
+extern ModeClockParameters mode_clock_params;
 
-void mode_clock_setup();  // Prepare task.
-void mode_clock_start();  // Start task.
-bool mode_clock_network_input(const uint8_t* data, int bytes);
+void mode_clock_setup();
+int mode_clock_draw();
+bool mode_clock_set_style(int style); 
 
 #endif

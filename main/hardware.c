@@ -219,8 +219,11 @@ bool raw_write_bit(uint8_t col_in, uint8_t row_in, bool data_in) {
     pin_enable = PIN_BOT_ENABLE;
   }
 
+  // Enable, writing the data. This incurs a per-pixel delay, so
+  // a value lower than 1 ms is required -- use ets_delay_us() to
+  // burn CPU for the required number of microseconds.
   gpio_set_level(pin_enable, true);
-  vTaskDelay(FR2800_ENABLE_MS / portTICK_PERIOD_MS);
+  ets_delay_us(FR2800_ENABLE_USEC);
   gpio_set_level(pin_enable, false);
 
   return true;
