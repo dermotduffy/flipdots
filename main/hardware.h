@@ -16,17 +16,17 @@
 //                                      |   Upside down: flipdots reversed   |
 //                                      +------------------------------------+
 
-#define PIN_TOP_SERIAL_OUT               23 // Serial data out (future: MOSI).
-#define PIN_TOP_SERIAL_CLK               22 // Serial data clock (future: SCLK).
-#define PIN_TOP_SR1_LATCH                18 // Serial latch for SR1 (cols)
-#define PIN_TOP_SR2_LATCH                17 // Serial latch for SR2 (rows+data)
-#define PIN_TOP_ENABLE                   27
+#define PIN_TOP_SERIAL_OUT               13 // Serial data out [13=HSPI-ID]
+#define PIN_TOP_SERIAL_CLK               14 // Serial data clock [14=HSPI-CLK]
+#define PIN_TOP_SR1_LATCH                15 // Serial latch for SR1 (cols) [15=HSPI-CS0]
+#define PIN_TOP_SR2_LATCH                16 // Serial latch for SR2 (rows+data)
+#define PIN_TOP_ENABLE                   17
 
-#define PIN_BOT_SERIAL_OUT               5  // Serial data out (future: MOSI).
-#define PIN_BOT_SERIAL_CLK               4  // Serial data clock (future: SCLK).
-#define PIN_BOT_SR1_LATCH                16 // Serial latch for SR1 (cols)
-#define PIN_BOT_SR2_LATCH                2  // Serial latch for SR2 (rows+data)
-#define PIN_BOT_ENABLE                   26
+#define PIN_BOT_SERIAL_OUT               23  // Serial data out [23=VSPI-ID]
+#define PIN_BOT_SERIAL_CLK               18  // Serial data clock [18=VSPI-CLK]
+#define PIN_BOT_SR1_LATCH                5   // Serial latch for SR1 (cols) [5=VSPI-CS0]
+#define PIN_BOT_SR2_LATCH                19  // Serial latch for SR2 (rows+data)
+#define PIN_BOT_ENABLE                   22
 
 #define FR2800_ENABLE_USEC               150 // Microsecond duration of enable pulse.
 

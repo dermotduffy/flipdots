@@ -18,6 +18,28 @@ static spi_device_handle_t spi_bot_rows;
 #endif
 
 void hardware_setup() {
+  // By default on esp32 certain pins (e.g. 13, 14) are not in GPIO mode on
+  // boot. Set all pins into GPIO_MODE_OUTPUT.
+  gpio_config_t io_conf;
+  io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
+  io_conf.mode = GPIO_MODE_OUTPUT;
+  io_conf.pin_bit_mask =
+      // Shift register pins.
+      (1ULL << PIN_TOP_SERIAL_OUT) |
+      (1ULL << PIN_TOP_SERIAL_CLK) |
+      (1ULL << PIN_TOP_SR1_LATCH) |
+      (1ULL << PIN_TOP_SR2_LATCH) |
+      (1ULL << PIN_BOT_SERIAL_OUT) |
+      (1ULL << PIN_BOT_SERIAL_CLK) |
+      (1ULL << PIN_BOT_SR1_LATCH) |
+      (1ULL << PIN_BOT_SR2_LATCH) |
+
+      // Flipdot FP2800 enable (latch) pins.
+      (1ULL << PIN_TOP_ENABLE) |
+      (1ULL << PIN_BOT_ENABLE);
+  io_conf.pull_down_en = 0;
+  io_conf.pull_up_en = 0;
+  gpio_config(&io_conf);
 
 #if SPI_MODE == SPI_NATIVE
   spi_host_device_t host_top = HSPI_HOST;
@@ -66,24 +88,7 @@ void hardware_setup() {
   spi_bot_rows_cfg.spics_io_num=PIN_BOT_SR2_LATCH;
   ESP_ERROR_CHECK(
       spi_bus_add_device(host_bot, &spi_bot_rows_cfg, &spi_bot_rows));
-
-#else
-
-  gpio_set_direction(PIN_TOP_SERIAL_OUT, GPIO_MODE_OUTPUT);
-  gpio_set_direction(PIN_TOP_SERIAL_CLK, GPIO_MODE_OUTPUT);
-  gpio_set_direction(PIN_TOP_SR1_LATCH, GPIO_MODE_OUTPUT);
-  gpio_set_direction(PIN_TOP_SR2_LATCH, GPIO_MODE_OUTPUT);
-
-  gpio_set_direction(PIN_BOT_SERIAL_OUT, GPIO_MODE_OUTPUT);
-  gpio_set_direction(PIN_BOT_SERIAL_CLK, GPIO_MODE_OUTPUT);
-  gpio_set_direction(PIN_BOT_SR1_LATCH, GPIO_MODE_OUTPUT);
-  gpio_set_direction(PIN_BOT_SR2_LATCH, GPIO_MODE_OUTPUT);
-
 #endif
-
-  // Flipdot FP2800 enable (latch) pins.
-  gpio_set_direction(PIN_TOP_ENABLE, GPIO_MODE_OUTPUT);
-  gpio_set_direction(PIN_BOT_ENABLE, GPIO_MODE_OUTPUT);
 }
 
 #if SPI_MODE == SPI_BITBANG
@@ -112,6 +117,7 @@ void shift_byte(uint8_t data, spi_device_handle_t* spi_device) {
 
   ESP_ERROR_CHECK(spi_device_transmit(*spi_device, &spi_trans));
 }
+
 #endif
 
 bool translate_to_board_space(

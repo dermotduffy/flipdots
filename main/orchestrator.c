@@ -3,7 +3,6 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
-
 #include "mgos.h"
 #include "mgos_rpc.h"
 
