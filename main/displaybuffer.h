@@ -42,6 +42,10 @@ void buffer_AND(
     const displaybuffer_t* b,
     displaybuffer_t* out);
 
+// Drawing methods return true if the draw was free of collisions
+// otherwise false if some/all of the drawing collided with the edges of the
+// display.
+
 bool buffer_draw_pixel(
     uint8_t x, uint8_t y, PixelValue value, displaybuffer_t* buffer);
 
