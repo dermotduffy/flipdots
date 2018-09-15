@@ -1,0 +1,51 @@
+#include <math.h>
+#include <stdio.h>
+
+#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+#include "displaybuffer.h"
+#include "displaydriver.h"
+#include "mode-bounce.h"
+
+const static char *LOG_TAG = "mode-bounce";
+
+static displaybuffer_t buffer_bounce;
+
+ModeBounceParameters mode_bounce_params;
+
+int mode_bounce_draw() {
+  buffer_wipe(&buffer_draw);
+  buffer_draw_pixel(mode_bounce_params.pos.x, mode_bounce_params.pos.y, PIXEL_YELLOW, &buffer_draw);
+
+  mode_bounce_params.pos.x += mode_bounce_params.rate.x;
+  mode_bounce_params.pos.y += mode_bounce_params.rate.y;
+
+  if (mode_bounce_params.pos.x <= 0) {
+    mode_bounce_params.pos.x = 0;
+    mode_bounce_params.rate.x = -mode_bounce_params.rate.x;
+  } else if (mode_bounce_params.pos.x >= DISPLAY_WIDTH - 1) {
+    mode_bounce_params.pos.x = DISPLAY_WIDTH - 1;
+    mode_bounce_params.rate.x = -mode_bounce_params.rate.x;
+  }
+
+  if (mode_bounce_params.pos.y <= 0) {
+    mode_bounce_params.pos.y = 0;
+    mode_bounce_params.rate.y = -mode_bounce_params.rate.y;
+  } else if (mode_bounce_params.pos.y >= DISPLAY_HEIGHT - 1) {
+    mode_bounce_params.pos.y = DISPLAY_HEIGHT - 1;
+    mode_bounce_params.rate.y = -mode_bounce_params.rate.y;
+  }
+
+  buffer_commit_drawing();
+  
+  return BOUNCE_TIME_DELAY_BETWEEN_DRAWS_MS;
+}
+
+void mode_bounce_setup() {
+  mode_bounce_params.pos.x = esp_random() % DISPLAY_WIDTH;
+  mode_bounce_params.pos.y = esp_random() % DISPLAY_HEIGHT;
+  mode_bounce_params.rate.x = 0.5 + (((esp_random() % 50)+1) / (double)100);
+  mode_bounce_params.rate.y = 0.5 + (((esp_random() % 50)+1) / (double)100);
+}

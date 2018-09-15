@@ -4,8 +4,10 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "mgos.h"
+#include "mgos_blynk.h"
 #include "mgos_rpc.h"
 
+#include "mode-bounce.h"
 #include "mode-clock.h"
 #include "mode-notification.h"
 #include "mutex-util.h"
@@ -27,11 +29,15 @@ SemaphoreHandle_t orchestrator_mutex = NULL;
 enum {
   ORCHESTRATOR_MODE_CLOCK = NOTIFICATION_ICON_MIN,
   ORCHESTRATOR_MODE_NOTIFICATION,
+  ORCHESTRATOR_MODE_BOUNCE,
 } orchestrator_mode;
-#define ORCHESTRATOR_MODE_MAX       ORCHESTRATOR_MODE_NOTIFICATION
-#define ORCHESTRATOR_MODE_DEFAULT   ORCHESTRATOR_MODE_CLOCK
+#define ORCHESTRATOR_MODE_MAX       ORCHESTRATOR_MODE_BOUNCE
+#define ORCHESTRATOR_MODE_DEFAULT   ORCHESTRATOR_MODE_BOUNCE
 
 #define RPC_MBUF_SIZE 50
+
+#define BLYNK_PIN_MODE        0
+#define BLYNK_PIN_CLOCK_STYLE 1
 
 const static char *LOG_TAG = "orchestrator";
 
@@ -46,6 +52,9 @@ void task_orchestrator() {
         break;
       case ORCHESTRATOR_MODE_NOTIFICATION:
         pause_ms = mode_notification_draw();
+        break;
+      case ORCHESTRATOR_MODE_BOUNCE:
+        pause_ms = mode_bounce_draw();
         break;
       default:
         ESP_LOGE(LOG_TAG, "Invalid mode: %i", orchestrator_mode);
@@ -149,6 +158,53 @@ static void rpc_notification_handler(
   (void) fi;
 }
 
+void blynk_event_mode(int value) {
+  mutex_lock(orchestrator_mutex);
+  // Note: Blynk modes are indexed from 1, orchestrator modes from 0.
+  switch (value) {
+    case ORCHESTRATOR_MODE_CLOCK + 1;
+      orchestrator_mode = ORCHESTRATOR_MODE_CLOCK;
+      break;
+
+    case ORCHESTRATOR_MODE_NOTIFICATION + 1:
+      mode_notification_set_icon(NOTIFICATION_ICON_DEFAULT);
+      orchestrator_mode = ORCHESTRATOR_MODE_NOTIFICATION;
+      break;
+
+    case ORCHESTRATOR_MODE_BOUNCE + 1:
+      orchestrator_mode = ORCHESTRATOR_MODE_BOUNCE;
+      break;
+  }
+  mutex_unlock(orchestrator_mutex);
+}
+
+void blynk_event(
+    struct mg_connection *conn, const char *cmd,
+    int pin, int val, int id, void *user_data) {
+  // cmd: vw / vr
+  // pin: The virtual pin number.
+  // val: The value of the pin.
+  // id: sequence id (?)
+
+  ESP_LOGI(LOG_TAG, "Blynk event: Cmd (%s), pin %i -> %i", cmd, pin, val);
+
+  if (strcmp("vw", cmd) != 0) {
+    ESP_LOGW(LOG_TAG, "Received unsupported blynk command: %s", cmd);
+    return;
+  }
+
+  switch (pin) {
+    case BLYNK_PIN_MODE:
+      blynk_event_mode(val);
+      break;
+    case BLYNK_PIN_CLOCK_STYLE:
+      mode_clock_set_style(val);
+      break;
+    default:
+      ESP_LOGW(LOG_TAG, "Unknown blynk pin: %i", pin);
+  }
+}
+
 void orchestrator_setup() {
   orchestrator_event_group = xEventGroupCreate();   
   configASSERT(orchestrator_event_group != NULL);
@@ -168,6 +224,10 @@ void orchestrator_setup() {
   // Setup mode tasks.
   mode_clock_setup();
   mode_notification_setup();
+  mode_bounce_setup();
+
+  mgos_blynk_init();
+  blynk_set_handler(blynk_event, "foo");
 }
 
 void orchestrator_start() {

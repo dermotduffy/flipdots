@@ -21,8 +21,6 @@
 
 #define TIME_DELAY_DISPLAYDRIVER_TEST_MS             1*1000
 
-const static char *LOG_TAG = "displaydriver";
-
 extern EventGroupHandle_t display_event_group;
 
 static xTaskHandle task_displaydriver_update_handle;
