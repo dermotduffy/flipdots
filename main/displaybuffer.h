@@ -28,8 +28,6 @@ void buffer_init(uint8_t width, uint8_t height, displaybuffer_t* buffer);
 
 void buffer_fill(PixelValue value, displaybuffer_t* buffer);
 void buffer_wipe(displaybuffer_t* buffer);
-void buffer_draw_pixel(
-    uint8_t x, uint8_t y, PixelValue value, displaybuffer_t* buffer);
 void buffer_inverse(displaybuffer_t* buffer);
 
 // Take a source displaybuffer, and fill on the dst displaybuffer
@@ -37,62 +35,65 @@ void buffer_inverse(displaybuffer_t* buffer);
 void buffer_fill_from_template(
     PixelValue value,
     const displaybuffer_t* src, displaybuffer_t* dst);
+
 void buffer_AND(
     PixelValue value,
     const displaybuffer_t* a,
     const displaybuffer_t* b,
     displaybuffer_t* out);
 
+bool buffer_draw_pixel(
+    uint8_t x, uint8_t y, PixelValue value, displaybuffer_t* buffer);
+
 // The dot factory based fonts.
-void buffer_tdf_draw_char(
+bool buffer_tdf_draw_char(
     uint8_t x, uint8_t y, PixelValue value, char c, const font_info_t* font,
     displaybuffer_t* buffer);
-void buffer_tdf_draw_char_info(
+bool buffer_tdf_draw_char_info(
     uint8_t x, uint8_t y, PixelValue value,
     const font_char_info_t* c, const font_info_t* font,
     displaybuffer_t* buffer);
-void buffer_tdf_draw_string(
+bool buffer_tdf_draw_string(
     uint8_t x, uint8_t y, PixelValue value, const char* s,
     int gap_between_chars, const font_info_t* font,
     displaybuffer_t* buffer);
-void buffer_tdf_draw_string_centre(
+bool buffer_tdf_draw_string_centre(
     int y,
     PixelValue value, const char* s, int gap_between_chars,
     const font_info_t* font,
     displaybuffer_t* buffer);
 
 // Adafruit GFX adaptations.
-void buffer_draw_line(
+bool buffer_draw_line(
     uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, PixelValue value,
     displaybuffer_t* buffer);
-void buffer_draw_bitmap(
+bool buffer_draw_bitmap(
     uint8_t x, uint8_t y,
     const uint8_t *bitmap, 
     uint8_t w, uint8_t h, PixelValue value,
     displaybuffer_t* buffer);
-void buffer_draw_triangle(
+bool buffer_draw_triangle(
     int16_t x0, int16_t y0,
     int16_t x1, int16_t y1,
     int16_t x2, int16_t y2,
     PixelValue value,
     displaybuffer_t* buffer);
-void buffer_fill_triangle(
+bool buffer_fill_triangle(
     int16_t x0, int16_t y0,
     int16_t x1, int16_t y1,
     int16_t x2, int16_t y2,
     PixelValue value,
     displaybuffer_t* buffer);
-void buffer_fill_circle(
+bool buffer_fill_circle(
     int16_t x0, int16_t y0, int16_t r,
     PixelValue value, displaybuffer_t* buffer);
-void buffer_fill_circle_helper(
+bool buffer_fill_circle_helper(
     int16_t x0, int16_t y0, int16_t r,
     uint8_t cornername, int16_t delta,
     PixelValue value, displaybuffer_t* buffer);
-void buffer_fill_circle_centre(
+bool buffer_fill_circle_centre(
     int16_t r, PixelValue value, displaybuffer_t* buffer);
-
-void buffer_fill_rectangle(
+bool buffer_fill_rectangle(
     int16_t x0, int16_t y0,
     int16_t x1, int16_t y1,
     PixelValue value, displaybuffer_t* buffer);

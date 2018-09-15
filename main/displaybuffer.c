@@ -45,69 +45,81 @@ void buffer_inverse(displaybuffer_t* buffer) {
   buffer_fill(PIXEL_INVERSE, buffer);
 }
 
-void buffer_draw_pixel(
+bool buffer_draw_pixel(
     uint8_t x, uint8_t y, PixelValue value,
     displaybuffer_t* buffer) {
   assert(buffer != NULL);
-  assert(x < buffer->width);
-  assert(y < buffer->height);
 
+  if (x >= buffer->width || y >= buffer->height) {
+    return false;
+  }
   raw_write_pixel(x, y, value, buffer);
 
   buffer->modified = true;
+  return true;
 }
 
-void buffer_tdf_draw_char(
+bool buffer_tdf_draw_char(
     uint8_t x, uint8_t y, PixelValue value,
     char c, const font_info_t* font,
     displaybuffer_t* buffer) {
-  buffer_tdf_draw_char_info(x, y, value, font_get_char_info(c, font), font, buffer);
+  return buffer_tdf_draw_char_info(x, y, value, font_get_char_info(c, font), font, buffer);
 }
 
-void buffer_tdf_draw_char_info(
+bool buffer_tdf_draw_char_info(
     uint8_t x, uint8_t y, PixelValue value,
     const font_char_info_t* char_info, const font_info_t* font,
     displaybuffer_t* buffer) {
   assert(font != NULL);
   assert(buffer != NULL);
 
+  bool collision_free = true;
+
   // Don't assert on missing character to avoid bad input causing issues, just
   // do nothing instead.
   if (char_info == NULL) {
-    return;
+    return collision_free;
   }
 
-  for (int row = 0;
-       row < font->height && (y+row) < buffer->height;
-       ++row) {
+  for (int row = 0; row < font->height; ++row) {
+    if (y + row >= buffer->height) {
+      collision_free = false;
+      break;
+    } 
+
     for (int col = 0;
-         col < char_info->width && (x+col) < buffer->width;
+         col < char_info->width;
          ++col) {
+      if (x + col >= buffer->width) {
+        collision_free = false;
+        break;
+      }
       if (font_get_pixel(char_info, col, row, font)) {
         raw_write_pixel(x+col, y+row, value, buffer);
       }
     }
   }
   buffer->modified = true;
+  return collision_free;
 }
 
-void buffer_tdf_draw_string(
+bool buffer_tdf_draw_string(
     uint8_t x, uint8_t y, PixelValue value,
     const char* s, int gap_between_chars,
     const font_info_t* font, displaybuffer_t* buffer) {
-  assert(x < buffer->width);  
-  assert(y < buffer->height);
   assert(font != NULL);
   assert(buffer != NULL);
 
+  bool collision_free = true;
   while (*s != '\0' && x < buffer->width) {
     const font_char_info_t* char_info = font_get_char_info(*(s++), font);
-    buffer_tdf_draw_char_info(x, y, value, char_info, font, buffer);
+    collision_free &= buffer_tdf_draw_char_info(x, y, value, char_info, font, buffer);
     x += (char_info->width+gap_between_chars);
   }
+  return collision_free;
 }
 
-void buffer_tdf_draw_string_centre(
+bool buffer_tdf_draw_string_centre(
     int y,
     PixelValue value, 
     const char* s, int gap_between_chars,
@@ -126,7 +138,7 @@ void buffer_tdf_draw_string_centre(
     start_x = (DISPLAY_WIDTH - text_width_in_pixels) / 2;
   }
 
-  buffer_tdf_draw_string(
+ return buffer_tdf_draw_string(
       start_x, start_y, value, s, gap_between_chars, font, buffer);
 }
 

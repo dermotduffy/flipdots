@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define _swap_int16_t(a, b) { int16_t t = a; a = b; b = t; }
 #endif
 
-void buffer_draw_line(
+bool buffer_draw_line(
   uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, PixelValue value,
   displaybuffer_t* buffer) {
 
@@ -71,11 +71,12 @@ void buffer_draw_line(
     ystep = -1;
   }
 
+  bool collision_free = true;
   for (; x0 <= x1; x0++) {
     if (steep) {
-      buffer_draw_pixel(y0, x0, value, buffer);
+      collision_free &= buffer_draw_pixel(y0, x0, value, buffer);
     } else {
-      buffer_draw_pixel(x0, y0, value, buffer);
+      collision_free &= buffer_draw_pixel(x0, y0, value, buffer);
     }
     err -= dy;
     if (err < 0) {
@@ -83,9 +84,10 @@ void buffer_draw_line(
       err += dx;
     }
   }
+  return collision_free;
 }
 
-void buffer_draw_bitmap(
+bool buffer_draw_bitmap(
   uint8_t x, uint8_t y,
   const uint8_t *bitmap, 
   uint8_t w, uint8_t h, PixelValue value,
@@ -94,6 +96,7 @@ void buffer_draw_bitmap(
   uint8_t xpos, ypos, byte_width = (w + 7) / 8;
   uint8_t byte = 0;
 
+  bool collision_free = true;
   for(ypos = 0; ypos < h; ypos++) {
     for(xpos = 0; xpos < w; xpos++) {
       if(xpos & 7) {
@@ -102,29 +105,33 @@ void buffer_draw_bitmap(
         byte = bitmap[ypos * byte_width + xpos / 8];
       } 
       if(byte & 0x01) {
-        buffer_draw_pixel(x+xpos, y+ypos, value, buffer);
+        collision_free &= buffer_draw_pixel(x+xpos, y+ypos, value, buffer);
       }
     }
   }
+  return collision_free;
 }
 
-void buffer_draw_triangle(
+bool buffer_draw_triangle(
     int16_t x0, int16_t y0,
     int16_t x1, int16_t y1,
     int16_t x2, int16_t y2, PixelValue value,
     displaybuffer_t* buffer) {
-  buffer_draw_line(x0, y0, x1, y1, value, buffer);
-  buffer_draw_line(x1, y1, x2, y2, value, buffer);
-  buffer_draw_line(x2, y2, x0, y0, value, buffer);
+  bool collision_free = true;
+  collision_free &= buffer_draw_line(x0, y0, x1, y1, value, buffer);
+  collision_free &= buffer_draw_line(x1, y1, x2, y2, value, buffer);
+  collision_free &= buffer_draw_line(x2, y2, x0, y0, value, buffer);
+  return collision_free;
 }
 
-void buffer_fill_triangle(
+bool buffer_fill_triangle(
     int16_t x0, int16_t y0,
     int16_t x1, int16_t y1,
     int16_t x2, int16_t y2,
     PixelValue value,
     displaybuffer_t* buffer) {
   int16_t a, b, y, last;
+  bool collision_free = true;
 
   // Sort coordinates by Y order (y2 >= y1 >= y0)
   if (y0 > y1) {
@@ -143,8 +150,7 @@ void buffer_fill_triangle(
     else if(x1 > b) b = x1;
     if(x2 < a)      a = x2;
     else if(x2 > b) b = x2;
-    buffer_draw_line(a, y0, a+(b-a), y0, value, buffer);
-    return;
+    return buffer_draw_line(a, y0, a+(b-a), y0, value, buffer);
   }
 
   int16_t
@@ -177,7 +183,7 @@ void buffer_fill_triangle(
     b = x0 + (x2 - x0) * (y - y0) / (y2 - y0);
     */
     if(a > b) _swap_int16_t(a,b);
-    buffer_draw_line(a, y, a+(b-a), y, value, buffer);
+    collision_free &= buffer_draw_line(a, y, a+(b-a), y, value, buffer);
   }
 
   // For lower part of triangle, find scanline crossings for segments
@@ -194,29 +200,33 @@ void buffer_fill_triangle(
     b = x0 + (x2 - x0) * (y - y0) / (y2 - y0);
     */
     if(a > b) _swap_int16_t(a,b);
-    buffer_draw_line(a, y, a+(b-a), y, value, buffer);
+    collision_free &= buffer_draw_line(a, y, a+(b-a), y, value, buffer);
   }
+  return collision_free;
 }
 
 // Note: Coordinate based rather than w/h based as in original Adafruit library.
-void buffer_fill_rectangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
+bool buffer_fill_rectangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
  PixelValue value, displaybuffer_t* buffer) {
   int16_t x_low = x0 <= x1 ? x0 : x1;
   int16_t x_high = x0 <= x1 ? x1 : x0;  
-
+  bool collision_free = true;
   for (int16_t i = x_low; i <= x_high; i++) {
-    buffer_draw_line(i, y0, i, y1, value, buffer);
+    collision_free &= buffer_draw_line(i, y0, i, y1, value, buffer);
   }
+  return collision_free;
 }
 
-void buffer_fill_circle(
+bool buffer_fill_circle(
     int16_t x0, int16_t y0, int16_t r,
     PixelValue value, displaybuffer_t* buffer) {
-  buffer_draw_line(x0, y0-r, x0, y0+r, value, buffer);
-  buffer_fill_circle_helper(x0, y0, r, 3, 0, value, buffer);
+  bool collision_free = true;
+  collision_free &= buffer_draw_line(x0, y0-r, x0, y0+r, value, buffer);
+  collision_free &= buffer_fill_circle_helper(x0, y0, r, 3, 0, value, buffer);
+  return collision_free;
 }
 
-void buffer_fill_circle_helper(
+bool buffer_fill_circle_helper(
     int16_t x0, int16_t y0, int16_t r,
     uint8_t cornername, int16_t delta,
     PixelValue value, displaybuffer_t* buffer) {
@@ -226,6 +236,7 @@ void buffer_fill_circle_helper(
   int16_t x     = 0;
   int16_t y     = r;
 
+  bool collision_free = true;
   while (x<y) {
     if (f >= 0) {
       y--;
@@ -237,28 +248,30 @@ void buffer_fill_circle_helper(
     f     += ddF_x;
 
     if (cornername & 0x1) {
-      buffer_draw_line(x0+x, y0-y, x0+x, y0+y+delta, value, buffer);
-      buffer_draw_line(x0+y, y0-x, x0+y, y0+x+delta, value, buffer);
+      collision_free &= buffer_draw_line(x0+x, y0-y, x0+x, y0+y+delta, value, buffer);
+      collision_free &= buffer_draw_line(x0+y, y0-x, x0+y, y0+x+delta, value, buffer);
     }
     if (cornername & 0x2) {
-      buffer_draw_line(x0-x, y0-y, x0-x, y0+y+delta, value, buffer);
-      buffer_draw_line(x0-y, y0-x, x0-y, y0+x+delta, value, buffer);
+      collision_free &= buffer_draw_line(x0-x, y0-y, x0-x, y0+y+delta, value, buffer);
+      collision_free &=  buffer_draw_line(x0-y, y0-x, x0-y, y0+x+delta, value, buffer);
     }
   }
+  return collision_free;
 }
 
-void buffer_fill_circle_centre(
+bool buffer_fill_circle_centre(
     int16_t r, PixelValue value, displaybuffer_t* displaybuffer) {
   int center = (DISPLAY_WIDTH/2)-1;
+  bool collision_free = true;
   if (DISPLAY_WIDTH % 2 == 0) {
     // To get circle to appear centered on an non-odd sized display, we draw
     // four overlapping circles.
-    buffer_fill_circle(center, center, r, value, displaybuffer);
-    buffer_fill_circle(center, center+1, r, value, displaybuffer);
-    buffer_fill_circle(center+1, center, r, value, displaybuffer);
-    buffer_fill_circle(center+1, center+1, r, value, displaybuffer);
+    collision_free &= buffer_fill_circle(center, center, r, value, displaybuffer);
+    collision_free &= buffer_fill_circle(center, center+1, r, value, displaybuffer);
+    collision_free &= buffer_fill_circle(center+1, center, r, value, displaybuffer);
+    collision_free &= buffer_fill_circle(center+1, center+1, r, value, displaybuffer);
   } else {
-    buffer_fill_circle(center, center, r+1, value, displaybuffer);
+    collision_free &= buffer_fill_circle(center, center, r+1, value, displaybuffer);
   }
+  return collision_free;
 }
-
