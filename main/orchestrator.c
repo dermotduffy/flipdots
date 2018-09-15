@@ -162,7 +162,7 @@ void blynk_event_mode(int value) {
   mutex_lock(orchestrator_mutex);
   // Note: Blynk modes are indexed from 1, orchestrator modes from 0.
   switch (value) {
-    case ORCHESTRATOR_MODE_CLOCK + 1;
+    case ORCHESTRATOR_MODE_CLOCK + 1:
       orchestrator_mode = ORCHESTRATOR_MODE_CLOCK;
       break;
 
