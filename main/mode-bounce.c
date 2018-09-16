@@ -9,6 +9,8 @@
 #include "displaydriver.h"
 #include "mode-bounce.h"
 
+#define MODE_BOUNCE_RADIUS 2
+
 const static char *LOG_TAG = "mode-bounce";
 
 static displaybuffer_t buffer_bounce;
@@ -17,24 +19,26 @@ ModeBounceParameters mode_bounce_params;
 
 int mode_bounce_draw() {
   buffer_wipe(&buffer_draw);
-  buffer_draw_pixel(mode_bounce_params.pos.x, mode_bounce_params.pos.y, PIXEL_YELLOW, &buffer_draw);
+  buffer_fill_circle(
+      mode_bounce_params.pos.x, mode_bounce_params.pos.y, MODE_BOUNCE_RADIUS,
+      PIXEL_YELLOW, &buffer_draw);
 
   mode_bounce_params.pos.x += mode_bounce_params.rate.x;
   mode_bounce_params.pos.y += mode_bounce_params.rate.y;
 
-  if (mode_bounce_params.pos.x <= 0) {
-    mode_bounce_params.pos.x = 0;
+  if (mode_bounce_params.pos.x <= MODE_BOUNCE_RADIUS) {
+    mode_bounce_params.pos.x = MODE_BOUNCE_RADIUS;
     mode_bounce_params.rate.x = -mode_bounce_params.rate.x;
-  } else if (mode_bounce_params.pos.x >= DISPLAY_WIDTH - 1) {
-    mode_bounce_params.pos.x = DISPLAY_WIDTH - 1;
+  } else if (mode_bounce_params.pos.x >= DISPLAY_WIDTH - 1 - MODE_BOUNCE_RADIUS) {
+    mode_bounce_params.pos.x = DISPLAY_WIDTH - 1 - MODE_BOUNCE_RADIUS;
     mode_bounce_params.rate.x = -mode_bounce_params.rate.x;
   }
 
-  if (mode_bounce_params.pos.y <= 0) {
-    mode_bounce_params.pos.y = 0;
+  if (mode_bounce_params.pos.y <= MODE_BOUNCE_RADIUS) {
+    mode_bounce_params.pos.y = MODE_BOUNCE_RADIUS;
     mode_bounce_params.rate.y = -mode_bounce_params.rate.y;
-  } else if (mode_bounce_params.pos.y >= DISPLAY_HEIGHT - 1) {
-    mode_bounce_params.pos.y = DISPLAY_HEIGHT - 1;
+  } else if (mode_bounce_params.pos.y >= DISPLAY_HEIGHT - 1 - MODE_BOUNCE_RADIUS) {
+    mode_bounce_params.pos.y = DISPLAY_HEIGHT - 1 - MODE_BOUNCE_RADIUS;
     mode_bounce_params.rate.y = -mode_bounce_params.rate.y;
   }
 
