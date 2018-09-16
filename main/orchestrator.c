@@ -38,6 +38,8 @@ enum {
 
 #define BLYNK_PIN_MODE        0
 #define BLYNK_PIN_CLOCK_STYLE 1
+#define BLYNK_PIN_DIRECTION_X 2
+#define BLYNK_PIN_DIRECTION_Y 3
 
 const static char *LOG_TAG = "orchestrator";
 
@@ -178,6 +180,21 @@ void blynk_event_mode(int value) {
   mutex_unlock(orchestrator_mutex);
 }
 
+void blynk_event_direction(int value, bool x_axis) {
+  ModeBounceCoords input;
+  if (x_axis) {
+    input.x = (value - 512) / 512.0;
+    input.y = 0;
+  } else {
+    input.x = 0;
+    input.y = (value - 512) / -512.0;
+  }
+
+  mutex_lock(orchestrator_mutex);
+  mode_bounce_rel_direction_input(input);
+  mutex_unlock(orchestrator_mutex);
+}
+
 void blynk_event(
     struct mg_connection *conn, const char *cmd,
     int pin, int val, int id, void *user_data) {
@@ -193,12 +210,19 @@ void blynk_event(
     return;
   }
 
+  ModeBounceCoords input;
   switch (pin) {
     case BLYNK_PIN_MODE:
       blynk_event_mode(val);
       break;
     case BLYNK_PIN_CLOCK_STYLE:
       mode_clock_set_style(val);
+      break;
+    case BLYNK_PIN_DIRECTION_X:
+      blynk_event_direction(val, true); 
+      break;
+    case BLYNK_PIN_DIRECTION_Y:
+      blynk_event_direction(val, false); 
       break;
     default:
       ESP_LOGW(LOG_TAG, "Unknown blynk pin: %i", pin);

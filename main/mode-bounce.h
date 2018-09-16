@@ -17,6 +17,6 @@ typedef struct {
 
 void mode_bounce_setup();
 int mode_bounce_draw();
-bool mode_bounce_direction_input(ModeBounceCoords input);
+bool mode_bounce_rel_direction_input(const ModeBounceCoords input);
 
 #endif

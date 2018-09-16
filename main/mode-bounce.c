@@ -53,3 +53,24 @@ void mode_bounce_setup() {
   mode_bounce_params.rate.x = 0.5 + (((esp_random() % 50)+1) / (double)100);
   mode_bounce_params.rate.y = 0.5 + (((esp_random() % 50)+1) / (double)100);
 }
+
+bool mode_bounce_rel_direction_input(const ModeBounceCoords input) {
+  double x = mode_bounce_params.rate.x + input.x;
+  double y = mode_bounce_params.rate.y + input.y;
+
+  if (x > 1) {
+    x = 1;
+  } else if (x < -1) {
+    x = -1;
+  }
+
+  if (y > 1) {
+    y = 1;
+  } else if (y < -1) {
+    y = -1;
+  }
+
+  mode_bounce_params.rate.x = x;
+  mode_bounce_params.rate.y = y;
+  return true;
+}
