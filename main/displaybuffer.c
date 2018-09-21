@@ -192,3 +192,7 @@ void buffer_AND(
   }
   out->modified = true;
 }
+
+PixelValue buffer_get_pixel(uint8_t x, uint8_t y, displaybuffer_t* buffer) {
+  return buffer->data[x][y];
+}

@@ -10,6 +10,7 @@
 #include "mode-bounce.h"
 #include "mode-clock.h"
 #include "mode-notification.h"
+#include "mode-snake.h"
 #include "mutex-util.h"
 
 #define TASK_ORCHESTRATOR_NAME           "orchestrator"
@@ -30,9 +31,10 @@ enum {
   ORCHESTRATOR_MODE_CLOCK = NOTIFICATION_ICON_MIN,
   ORCHESTRATOR_MODE_NOTIFICATION,
   ORCHESTRATOR_MODE_BOUNCE,
+  ORCHESTRATOR_MODE_SNAKE,
 } orchestrator_mode;
-#define ORCHESTRATOR_MODE_MAX       ORCHESTRATOR_MODE_BOUNCE
-#define ORCHESTRATOR_MODE_DEFAULT   ORCHESTRATOR_MODE_BOUNCE
+#define ORCHESTRATOR_MODE_MAX       ORCHESTRATOR_MODE_CLOCK
+#define ORCHESTRATOR_MODE_DEFAULT   ORCHESTRATOR_MODE_CLOCK
 
 #define RPC_MBUF_SIZE 50
 
@@ -40,6 +42,8 @@ enum {
 #define BLYNK_PIN_CLOCK_STYLE 1
 #define BLYNK_PIN_DIRECTION_X 2
 #define BLYNK_PIN_DIRECTION_Y 3
+
+#define BLYNK_DIRECTION_CUTOFF 0.5
 
 const static char *LOG_TAG = "orchestrator";
 
@@ -57,6 +61,9 @@ void task_orchestrator() {
         break;
       case ORCHESTRATOR_MODE_BOUNCE:
         pause_ms = mode_bounce_draw();
+        break;
+      case ORCHESTRATOR_MODE_SNAKE:
+        pause_ms = mode_snake_draw();
         break;
       default:
         ESP_LOGE(LOG_TAG, "Invalid mode: %i", orchestrator_mode);
@@ -167,31 +174,70 @@ void blynk_event_mode(int value) {
     case ORCHESTRATOR_MODE_CLOCK + 1:
       orchestrator_mode = ORCHESTRATOR_MODE_CLOCK;
       break;
-
     case ORCHESTRATOR_MODE_NOTIFICATION + 1:
       mode_notification_set_icon(NOTIFICATION_ICON_DEFAULT);
       orchestrator_mode = ORCHESTRATOR_MODE_NOTIFICATION;
       break;
-
     case ORCHESTRATOR_MODE_BOUNCE + 1:
       orchestrator_mode = ORCHESTRATOR_MODE_BOUNCE;
+      break;
+    case ORCHESTRATOR_MODE_SNAKE + 1:
+      mode_snake_reset_game();
+      orchestrator_mode = ORCHESTRATOR_MODE_SNAKE;
       break;
   }
   mutex_unlock(orchestrator_mutex);
 }
 
+#define abs(x)  ( ( (x) < 0) ? -(x) : (x) )
+
 void blynk_event_direction(int value, bool x_axis) {
-  ModeBounceCoords input;
+  double x;
+  double y;
+
   if (x_axis) {
-    input.x = (value - 512) / 512.0;
-    input.y = 0;
+    x = (value - 512) / (double)512.0;
+    if (abs(x) < BLYNK_DIRECTION_CUTOFF) {
+      return;
+    }
+    y = 0;
   } else {
-    input.x = 0;
-    input.y = (value - 512) / -512.0;
+    x = 0;
+    y = (value - 512) / (double)512.0;
+    if (abs(y) < BLYNK_DIRECTION_CUTOFF) {
+      return;
+    }
   }
 
+  ModeBounceCoords bounce_input;
+  SnakeDirection snake_input;
+
   mutex_lock(orchestrator_mutex);
-  mode_bounce_rel_direction_input(input);
+  switch (orchestrator_mode) {
+    case ORCHESTRATOR_MODE_BOUNCE:
+      bounce_input.x = x;
+      bounce_input.y = -y;
+      mode_bounce_rel_direction_input(bounce_input);
+      break;
+    case ORCHESTRATOR_MODE_SNAKE:
+      if (abs(x) > abs(y)) {
+        if (x > 0) {
+          snake_input = SNAKE_EAST;
+        } else {
+          snake_input = SNAKE_WEST;
+        }
+      } else {
+        if (y > 0) {
+          snake_input = SNAKE_NORTH;
+        } else {
+          snake_input = SNAKE_SOUTH;
+        }
+      }
+      mode_snake_direction_input(snake_input);
+      break;
+    default:
+      break;
+  }
   mutex_unlock(orchestrator_mutex);
 }
 
@@ -249,6 +295,7 @@ void orchestrator_setup() {
   mode_clock_setup();
   mode_notification_setup();
   mode_bounce_setup();
+  mode_snake_setup();
 
   mgos_blynk_init();
   blynk_set_handler(blynk_event, "foo");

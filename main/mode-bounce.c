@@ -13,8 +13,6 @@
 
 const static char *LOG_TAG = "mode-bounce";
 
-static displaybuffer_t buffer_bounce;
-
 ModeBounceParameters mode_bounce_params;
 
 int mode_bounce_draw() {
