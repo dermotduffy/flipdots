@@ -25,7 +25,14 @@ typedef struct {
 
   int snake_tail_index;
   int snake_head_index;
+
+  // Snake is to grow by this many nodes (tail of snake not removed on each
+  // advance).
   int nodes_to_grow;
+
+  // Snake is in flash mode, flash/invert the screen this number of times (for
+  // win/lose).
+  int flash_countdown;
 } Snake;
 
 typedef struct {

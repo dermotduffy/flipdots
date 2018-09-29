@@ -14,6 +14,7 @@
 #define SNAKE_START_LEN         3
 #define SNAKE_FOOD_PROBABILITY  0.1
 #define SNAKE_FOOD_GROWTH       2
+#define SNAKE_FLASH_COUNT       6
 
 const static char *LOG_TAG = "mode-snake";
 
@@ -26,6 +27,7 @@ void mode_snake_reset_game() {
   mode_snake_state.snake.snake_tail_index = -1;
   mode_snake_state.snake.nodes_to_grow = 0;
   mode_snake_state.snake.moving_direction = SNAKE_EAST;
+  mode_snake_state.snake.flash_countdown = -1;
 
   mode_snake_state.food.x = -1;
   mode_snake_state.food.y = -1;
@@ -118,6 +120,17 @@ void add_food() {
 int mode_snake_draw() {
   Snake* snake = &mode_snake_state.snake;
 
+  // Flash the screen on win/lose a set number of times.
+  if (snake->flash_countdown > 0) {
+    buffer_inverse(&buffer_draw);
+    buffer_commit_drawing();
+    snake->flash_countdown--;
+    return SNAKE_TIME_DELAY_BETWEEN_DRAWS_MS;
+  } else if (snake->flash_countdown == 0) {
+    snake->flash_countdown = -1;
+    return 0;
+  }
+
   if (snake->snake_tail_index < 0 || snake->snake_head_index < 0) {
     create_starter_snake();
     draw_snake_to_displaybuffer(&buffer_draw);
@@ -125,10 +138,10 @@ int mode_snake_draw() {
     return SNAKE_TIME_DELAY_BETWEEN_DRAWS_MS;
   }
 
-  // TODO: Do something here.
   if (get_snake_length() == SNAKE_MAX_LEN) {
     ESP_LOGI(LOG_TAG, "Snake win!");
-    return 0;
+    snake->flash_countdown = SNAKE_FLASH_COUNT;
+    return SNAKE_TIME_DELAY_BETWEEN_DRAWS_MS;
   }
 
   struct SnakeCoords new_head = snake->nodes[snake->snake_head_index];
@@ -148,11 +161,11 @@ int mode_snake_draw() {
       break;
   }
 
-  // TODO: Do something here.
   if (new_head.x < 0 || new_head.x >= DISPLAY_WIDTH ||
       new_head.y < 0 || new_head.y >= DISPLAY_HEIGHT) {
     ESP_LOGI(LOG_TAG, "Snake dead via wall collison :-(");
-    return 0;
+    snake->flash_countdown = SNAKE_FLASH_COUNT;
+    return SNAKE_TIME_DELAY_BETWEEN_DRAWS_MS;
   }
 
   // This section of the code may refer to buffer_snake, which
@@ -166,7 +179,8 @@ int mode_snake_draw() {
     mode_snake_state.food.y = -1;
   } else if (buffer_get_pixel(new_head.x, new_head.y, &buffer_snake) == PIXEL_YELLOW) {
     ESP_LOGI(LOG_TAG, "Snake dead via self collison :-(");
-    return 0;
+    snake->flash_countdown = SNAKE_FLASH_COUNT;
+    return SNAKE_TIME_DELAY_BETWEEN_DRAWS_MS;
   }
       
   // Add node to the front.
