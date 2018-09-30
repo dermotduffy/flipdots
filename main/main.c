@@ -10,6 +10,7 @@
 #include "mgos.h"
 
 #include "displaydriver.h"
+#include "touchpad.h"
 #include "orchestrator.h"
 
 const static char *LOG_TAG = "flipdots";
@@ -28,6 +29,9 @@ enum mgos_app_init_result mgos_app_init(void) {
   // previously on the display.
   // (Must be prior to orchestrator taking over the display).
   displaydriver_testpattern();
+
+  touchpad_setup();
+  touchpad_start();
 
   // Setup & start the orchestrator.
   orchestrator_setup();
