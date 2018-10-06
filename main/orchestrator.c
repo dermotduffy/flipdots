@@ -311,6 +311,10 @@ void orchestrator_start() {
 }
 
 void orchestrator_touchpad_input(bool pad0, bool pad1) {
+  if (!pad0 && !pad1) {
+    return;
+  }
+
   mutex_lock(orchestrator_mutex);
   if (pad0 && pad1) {
     enum OrchestratorMode mode = orchestrator_mode + 1;
@@ -320,11 +324,19 @@ void orchestrator_touchpad_input(bool pad0, bool pad1) {
     set_orchestrator_mode_locked(mode);
     xEventGroupSetBits(orchestrator_event_group, ORCHESTRATOR_EVENT_WAKEUP_BIT);
   } else {
+    ModeBounceCoords coords;
+
     switch (orchestrator_mode) {
       case ORCHESTRATOR_MODE_SNAKE:
-        ESP_LOGW(LOG_TAG, "Snake rel direction: %i, %i", pad0, pad1);
         mode_snake_rel_direction_input(pad0, pad1);
         break;
+      case ORCHESTRATOR_MODE_BOUNCE:
+        if (pad1) {
+          coords.x = 1;
+        } else {
+          coords.x = -1;
+        }
+        mode_bounce_rel_direction_input(coords);
       default:
         break;
     }
