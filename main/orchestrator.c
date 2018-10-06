@@ -27,13 +27,13 @@ EventGroupHandle_t orchestrator_event_group;
 SemaphoreHandle_t orchestrator_mutex = NULL;
 
 #define ORCHESTRATOR_MODE_MIN       0
-enum {
-  ORCHESTRATOR_MODE_CLOCK = NOTIFICATION_ICON_MIN,
+enum OrchestratorMode {
+  ORCHESTRATOR_MODE_CLOCK = ORCHESTRATOR_MODE_MIN,
   ORCHESTRATOR_MODE_NOTIFICATION,
   ORCHESTRATOR_MODE_BOUNCE,
   ORCHESTRATOR_MODE_SNAKE,
 } orchestrator_mode;
-#define ORCHESTRATOR_MODE_MAX       ORCHESTRATOR_MODE_CLOCK
+#define ORCHESTRATOR_MODE_MAX       ORCHESTRATOR_MODE_SNAKE
 #define ORCHESTRATOR_MODE_DEFAULT   ORCHESTRATOR_MODE_CLOCK
 
 #define RPC_MBUF_SIZE 50
@@ -167,25 +167,24 @@ static void rpc_notification_handler(
   (void) fi;
 }
 
+// orchestrator mutex needs to be held.
+void set_orchestrator_mode_locked(int value) {
+  if (value < ORCHESTRATOR_MODE_MIN || value > ORCHESTRATOR_MODE_MAX) {
+    return;
+  }
+  orchestrator_mode = value;
+  if (orchestrator_mode == ORCHESTRATOR_MODE_SNAKE) {
+    mode_snake_reset_game();
+  } else if (orchestrator_mode == ORCHESTRATOR_MODE_NOTIFICATION) {
+    mode_notification_set_icon(NOTIFICATION_ICON_DEFAULT);
+  }
+}
+
 void blynk_event_mode(int value) {
   mutex_lock(orchestrator_mutex);
-  // Note: Blynk modes are indexed from 1, orchestrator modes from 0.
-  switch (value) {
-    case ORCHESTRATOR_MODE_CLOCK + 1:
-      orchestrator_mode = ORCHESTRATOR_MODE_CLOCK;
-      break;
-    case ORCHESTRATOR_MODE_NOTIFICATION + 1:
-      mode_notification_set_icon(NOTIFICATION_ICON_DEFAULT);
-      orchestrator_mode = ORCHESTRATOR_MODE_NOTIFICATION;
-      break;
-    case ORCHESTRATOR_MODE_BOUNCE + 1:
-      orchestrator_mode = ORCHESTRATOR_MODE_BOUNCE;
-      break;
-    case ORCHESTRATOR_MODE_SNAKE + 1:
-      mode_snake_reset_game();
-      orchestrator_mode = ORCHESTRATOR_MODE_SNAKE;
-      break;
-  }
+
+  // Blynk modes are indexed from 1, orchestrator modes from 0.
+  set_orchestrator_mode_locked(value - 1);
   mutex_unlock(orchestrator_mutex);
 }
 
@@ -256,7 +255,6 @@ void blynk_event(
     return;
   }
 
-  ModeBounceCoords input;
   switch (pin) {
     case BLYNK_PIN_MODE:
       blynk_event_mode(val);
@@ -310,4 +308,26 @@ void orchestrator_start() {
       TASK_ORCHESTRATOR_PRIORITY,
       &task_orchestrator_handle,
       tskNO_AFFINITY) == pdTRUE);
+}
+
+void orchestrator_touchpad_input(bool pad0, bool pad1) {
+  mutex_lock(orchestrator_mutex);
+  if (pad0 && pad1) {
+    enum OrchestratorMode mode = orchestrator_mode + 1;
+    if (mode > ORCHESTRATOR_MODE_MAX) {
+      mode = ORCHESTRATOR_MODE_MIN;
+    }
+    set_orchestrator_mode_locked(mode);
+    xEventGroupSetBits(orchestrator_event_group, ORCHESTRATOR_EVENT_WAKEUP_BIT);
+  } else {
+    switch (orchestrator_mode) {
+      case ORCHESTRATOR_MODE_SNAKE:
+        ESP_LOGW(LOG_TAG, "Snake rel direction: %i, %i", pad0, pad1);
+        mode_snake_rel_direction_input(pad0, pad1);
+        break;
+      default:
+        break;
+    }
+  }
+  mutex_unlock(orchestrator_mutex);
 }

@@ -227,3 +227,45 @@ bool mode_snake_direction_input(const SnakeDirection input) {
   mode_snake_state.snake.moving_direction = input;
   return true;
 }
+
+bool mode_snake_rel_direction_input(bool left, bool right) {
+  SnakeDirection now_direction = mode_snake_state.snake.moving_direction;
+  SnakeDirection new_direction = SNAKE_NORTH;
+
+  if (left && right) {
+    return false;
+  } else if (left) {
+    switch (now_direction) {
+      case SNAKE_NORTH:
+        new_direction = SNAKE_WEST;
+        break;
+      case SNAKE_EAST:
+        new_direction = SNAKE_NORTH;
+        break;
+      case SNAKE_SOUTH:
+        new_direction = SNAKE_EAST;
+        break;
+      case SNAKE_WEST:
+        new_direction = SNAKE_SOUTH;
+        break;
+    }
+  } else if (right) {
+    switch (now_direction) {
+      case SNAKE_NORTH:
+        new_direction = SNAKE_EAST;
+        break;
+      case SNAKE_EAST:
+        new_direction = SNAKE_SOUTH;
+        break;
+      case SNAKE_SOUTH:
+        new_direction = SNAKE_WEST;
+        break;
+      case SNAKE_WEST:
+        new_direction = SNAKE_NORTH;
+        break;
+    }
+  }
+
+  mode_snake_state.snake.moving_direction =  new_direction;
+  return true;
+}

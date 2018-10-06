@@ -9,6 +9,7 @@
 #include "soc/sens_reg.h"
 
 #include "touchpad.h"
+#include "orchestrator.h"
 
 static const char* TAG = "Touch pad";
 
@@ -19,12 +20,12 @@ static xTaskHandle task_touchpad_handle;
 static EventGroupHandle_t touchpad_event_group;
 #define TOUCHPAD_EVENT_WAKEUP_BIT         BIT0
 
-#define TOUCHPAD_DEBOUNCE_MS          300
+#define TOUCHPAD_DEBOUNCE_MS          200
 #define TOUCHPAD_FILTER_START_MS      200
 
 #define TASK_TOUCHPAD_NAME            "touchpad"
 #define TASK_TOUCHPAD_STACK_WORDS     2<<11
-#define TASK_TOUCHPAD_PRIORITY        4
+#define TASK_TOUCHPAD_PRIORITY        7
 
 #define NUM_TOUCHPADS                 2
 static int touchpads[] =              {0, 2};
@@ -32,6 +33,8 @@ static int touchpads[] =              {0, 2};
 static bool touchpads_activated[TOUCH_PAD_MAX];
 
 static void task_touchpad(void *pvParameter) {
+  bool pad0 = false, pad1 = false;
+
   while (true) {
     if ((xEventGroupWaitBits(
           touchpad_event_group,
@@ -42,14 +45,25 @@ static void task_touchpad(void *pvParameter) {
       continue;
     }
 
-    for (int i = 0; i < NUM_TOUCHPADS; i++) {
+    pad0 = pad1 = false;
+
+    if (touchpads_activated[touchpads[0]] == true) {
+      pad0 = true;
+    } 
+
+    if (touchpads_activated[touchpads[1]] == true) {
+      pad1 = true;
+    } 
+
+    if (pad0 || pad1) {
+      orchestrator_touchpad_input(pad0, pad1);
+
+      // Wait a while for the pad being released
+      vTaskDelay(TOUCHPAD_DEBOUNCE_MS / portTICK_PERIOD_MS);
+    }
+
+    for (int i = 0; i < NUM_TOUCHPADS; ++i) {
       if (touchpads_activated[touchpads[i]] == true) {
-        ESP_LOGI(TAG, "T%d touched!", i);
-
-        // Wait a while for the pad being released
-        vTaskDelay(TOUCHPAD_DEBOUNCE_MS / portTICK_PERIOD_MS);
-
-        // Clear information on pad activation
         touchpads_activated[touchpads[i]] = false;
       }
     }
@@ -58,7 +72,6 @@ static void task_touchpad(void *pvParameter) {
 
 static void touchpad_intr(void *arg) {
   uint32_t pad_intr = touch_pad_get_status();
-  touch_pad_clear_status();
 
   for (int i = 0; i < NUM_TOUCHPADS; ++i) {
     if ((pad_intr >> touchpads[i]) & 0x01) {
@@ -71,8 +84,10 @@ static void touchpad_intr(void *arg) {
       touchpad_event_group,
       TOUCHPAD_EVENT_WAKEUP_BIT,
       &xHigherPriorityTaskWoken) != pdFAIL) {
-        portYIELD_FROM_ISR();//HigherPriorityTaskWoken);
+        portYIELD_FROM_ISR();
   }
+
+  touch_pad_clear_status();
 }
 
 void touchpad_setup() {
@@ -94,7 +109,7 @@ void touchpad_setup() {
   uint16_t touch_value;
   for (int i = 0; i < NUM_TOUCHPADS; ++i) {
     touch_pad_read_filtered(touchpads[i], &touch_value);
-    ESP_LOGI(TAG, "touchpads: touch pad [%d] init val is %d", touchpads[i], touch_value);
+    ESP_LOGD(TAG, "touchpads: touch pad [%d] init val is %d", touchpads[i], touch_value);
     ESP_ERROR_CHECK(touch_pad_set_thresh(touchpads[i], touch_value * 2 / 3));
   }
 

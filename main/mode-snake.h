@@ -43,6 +43,7 @@ typedef struct {
 void mode_snake_setup();
 int mode_snake_draw();
 bool mode_snake_direction_input(const SnakeDirection input);
+bool mode_snake_rel_direction_input(bool left, bool right);
 void mode_snake_reset_game();
 
 #endif
