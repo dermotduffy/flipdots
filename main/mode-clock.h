@@ -23,6 +23,6 @@ extern ModeClockParameters mode_clock_params;
 
 void mode_clock_setup();
 int mode_clock_draw();
-bool mode_clock_set_style(int style); 
+bool mode_clock_set_style(int style);
 
 #endif

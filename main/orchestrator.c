@@ -52,7 +52,7 @@ void task_orchestrator() {
 
   while (true) {
     mutex_lock(orchestrator_mutex);
-    switch (orchestrator_mode) {  
+    switch (orchestrator_mode) {
       case ORCHESTRATOR_MODE_CLOCK:
         pause_ms = mode_clock_draw();
         break;
@@ -100,7 +100,7 @@ void task_orchestrator() {
 
   // Never reached.
   vTaskDelete(NULL);
-  return; 
+  return;
 }
 
 static void rpc_clock_handler(
@@ -118,7 +118,7 @@ static void rpc_clock_handler(
     bool style_success = mode_clock_set_style(style);
     orchestrator_mode = ORCHESTRATOR_MODE_CLOCK;
     mutex_unlock(orchestrator_mutex);
-    
+
     if (!style_success) {
       json_printf(&out, "{error: %Q}", "Invalid clock style");
     } else {
@@ -150,7 +150,7 @@ static void rpc_notification_handler(
     bool icon_success = mode_notification_set_icon(icon);
     orchestrator_mode = ORCHESTRATOR_MODE_NOTIFICATION;
     mutex_unlock(orchestrator_mutex);
-    
+
     if (!icon_success) {
       json_printf(&out, "{error: %Q}", "Invalid notification icon");
     } else {
@@ -263,10 +263,10 @@ void blynk_event(
       mode_clock_set_style(val);
       break;
     case BLYNK_PIN_DIRECTION_X:
-      blynk_event_direction(val, true); 
+      blynk_event_direction(val, true);
       break;
     case BLYNK_PIN_DIRECTION_Y:
-      blynk_event_direction(val, false); 
+      blynk_event_direction(val, false);
       break;
     default:
       ESP_LOGW(LOG_TAG, "Unknown blynk pin: %i", pin);
@@ -274,7 +274,7 @@ void blynk_event(
 }
 
 void orchestrator_setup() {
-  orchestrator_event_group = xEventGroupCreate();   
+  orchestrator_event_group = xEventGroupCreate();
   configASSERT(orchestrator_event_group != NULL);
 
   orchestrator_mutex = xSemaphoreCreateMutex();

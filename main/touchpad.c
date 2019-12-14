@@ -49,11 +49,11 @@ static void task_touchpad(void *pvParameter) {
 
     if (touchpads_activated[touchpads[0]] == true) {
       pad0 = true;
-    } 
+    }
 
     if (touchpads_activated[touchpads[1]] == true) {
       pad1 = true;
-    } 
+    }
 
     if (pad0 || pad1) {
       orchestrator_touchpad_input(pad0, pad1);
@@ -91,14 +91,14 @@ static void touchpad_intr(void *arg) {
 }
 
 void touchpad_setup() {
-  touchpad_event_group = xEventGroupCreate();   
+  touchpad_event_group = xEventGroupCreate();
   configASSERT(touchpad_event_group != NULL);
 
   ESP_LOGI(TAG, "Initializing touch pad");
   touch_pad_init();
   touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
   touch_pad_set_voltage(TOUCH_HVOLT_2V7, TOUCH_LVOLT_0V5, TOUCH_HVOLT_ATTEN_1V);
- 
+
   for (int i = 0; i < NUM_TOUCHPADS; ++i) {
     touch_pad_config(touchpads[i], TOUCH_THRESH_NO_USE);
   }

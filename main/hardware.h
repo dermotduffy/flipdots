@@ -12,7 +12,7 @@
 // | esp32 |____/                       |             Top board              |
 // +-------+    \                       +------------------------------------+
 //               2 shift registers ==== | 14x28 Flipdot board -- dual FP2800 |
-//                                      |            Bottom board            |                      
+//                                      |            Bottom board            |
 //                                      |   Upside down: flipdots reversed   |
 //                                      +------------------------------------+
 
@@ -49,7 +49,7 @@
 #define FLIP_ROWS_A0_BIT                 0
 #define FLIP_ROWS_A1_BIT                 1
 #define FLIP_ROWS_A2_BIT                 2
-#define FLIP_ROWS_B1_BIT                 3 
+#define FLIP_ROWS_B1_BIT                 3
 #define FLIP_ROWS_NUM_ADDRESS_BITS       (FLIP_ROWS_B1_BIT+1)
 #define FLIP_ROWS_DATA_BIT               4  // Hard-wired to Rows B0 bit.
 #define FLIP_COLS_DATA_BIT               5
@@ -103,19 +103,19 @@ bool translate_to_board_space(
 
 uint8_t inline translate_board_col_to_address(uint8_t x) {
   uint8_t remainder = x % 7;
-  uint8_t highbits = ((x-1) / 7); 
-  
+  uint8_t highbits = ((x-1) / 7);
+
   if (remainder == 0) {
     remainder = 7;
-  }   
+  }
   return (highbits << 3) | remainder;
 }
 
 uint8_t inline translate_board_row_to_address(uint8_t y) {
-  bool offset = false; 
-  bool high_bit = false; 
+  bool offset = false;
+  bool high_bit = false;
   if (y <= 7) {
-    offset = true; 
+    offset = true;
   } else {
     high_bit = true;
   }

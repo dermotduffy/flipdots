@@ -85,7 +85,7 @@ bool buffer_tdf_draw_char_info(
     if (y + row >= buffer->height) {
       collision_free = false;
       break;
-    } 
+    }
 
     for (int col = 0;
          col < char_info->width;
@@ -121,7 +121,7 @@ bool buffer_tdf_draw_string(
 
 bool buffer_tdf_draw_string_centre(
     int y,
-    PixelValue value, 
+    PixelValue value,
     const char* s, int gap_between_chars,
     const font_info_t* font,
     displaybuffer_t* buffer) {

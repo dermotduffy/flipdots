@@ -112,7 +112,7 @@ void shift_byte(uint8_t data, spi_device_handle_t* spi_device) {
   memset(&spi_trans, 0, sizeof(spi_trans));
   spi_trans.length = sizeof(data) * 8;  // Transaction length is in bits.
   spi_trans.tx_data[0] = data;
-  
+
   spi_trans.flags = SPI_TRANS_USE_TXDATA;
 
   ESP_ERROR_CHECK(spi_device_transmit(*spi_device, &spi_trans));
@@ -124,9 +124,9 @@ bool translate_to_board_space(
     uint8_t x_in, uint8_t y_in, bool data_in,
     uint8_t* x_out, uint8_t* y_out, bool* data_out,
     FlipBoard* board) {
-  assert (x_out != NULL); 
-  assert (y_out != NULL); 
-  assert (board != NULL); 
+  assert (x_out != NULL);
+  assert (y_out != NULL);
+  assert (board != NULL);
 
   if (x_in >= DISPLAY_WIDTH || y_in >= DISPLAY_HEIGHT) {
     return false;
@@ -148,7 +148,7 @@ bool translate_to_board_space(
     case DISPLAY_ROTATION_180:
       y_in_r = DISPLAY_HEIGHT - y_in - 1;
       x_in_r = DISPLAY_WIDTH - x_in - 1;
-      break; 
+      break;
 
     case DISPLAY_ROTATION_270:
       y_in_r = DISPLAY_WIDTH - x_in - 1;
@@ -159,7 +159,7 @@ bool translate_to_board_space(
   if (y_in_r >= FLIP_BOARD_HEIGHT) {
     *board = FLIP_BOARD_BOTTOM;
   } else {
-    *board = FLIP_BOARD_TOP;     
+    *board = FLIP_BOARD_TOP;
   }
 
   if (*board == FLIP_BOARD_TOP) {
@@ -169,7 +169,7 @@ bool translate_to_board_space(
   } else {
     // Bottom display is upside down.
     *y_out = FLIP_BOARD_HEIGHT - (y_in_r - FLIP_BOARD_HEIGHT);
-    *x_out = x_in_r + 1; 
+    *x_out = x_in_r + 1;
 
     // The bottom board is upside down, with the 'dots' physically
     // reversed so the two boards are dot-aligned. Thus the data bit

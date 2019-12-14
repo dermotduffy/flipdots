@@ -119,7 +119,7 @@ static void draw_analog_minutes(
 
   for (int i = 0; i < chosen_end_point; ++i) {
     buffer_draw_line(center_x, center_y,
-                     x, y, 
+                     x, y,
                      PIXEL_YELLOW, displaybuffer);
 
     if (x < (DISPLAY_WIDTH-1) && y == 0) {
@@ -159,15 +159,15 @@ int mode_clock_draw() {
 
   if (!get_time_info(&time_info)) {
     ESP_LOGI(LOG_TAG, "Could not draw clock, don't know what time it is!");
- 
+
     // Display an error message if there is no valid time available.
     buffer_wipe(&buffer_draw);
     buffer_tdf_draw_string_centre(
         FONT_QUESTION_MARK_OFFSET_PIXELS, PIXEL_YELLOW, "?",
         GAP_BETWEEN_DIGITS, font_large, &buffer_draw);
     buffer_commit_drawing();
-    return CLOCK_TIME_DELAY_BETWEEN_DRAWS_ERROR_MS; 
-  } 
+    return CLOCK_TIME_DELAY_BETWEEN_DRAWS_ERROR_MS;
+  }
 
   // Update display buffer.
   buffer_wipe(&buffer_draw);
@@ -204,9 +204,9 @@ int mode_clock_draw() {
   } else { // Default: CLOCK_STYLE_DIGITAL
     draw_time(&time_info, &buffer_draw);
   }
-    
+
   buffer_commit_drawing();
-  
+
   return CLOCK_TIME_DELAY_BETWEEN_DRAWS_MS;
 }
 

@@ -41,7 +41,7 @@ int mode_bounce_draw() {
   }
 
   buffer_commit_drawing();
-  
+
   return BOUNCE_TIME_DELAY_BETWEEN_DRAWS_MS;
 }
 

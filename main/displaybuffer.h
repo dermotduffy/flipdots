@@ -75,7 +75,7 @@ bool buffer_draw_line(
     displaybuffer_t* buffer);
 bool buffer_draw_bitmap(
     uint8_t x, uint8_t y,
-    const uint8_t *bitmap, 
+    const uint8_t *bitmap,
     uint8_t w, uint8_t h, PixelValue value,
     displaybuffer_t* buffer);
 bool buffer_draw_triangle(

@@ -1,4 +1,4 @@
-/* 
+/*
 Software License Agreement (BSD License)
 
 Copyright (c) 2012 Adafruit Industries.  All rights reserved.
@@ -89,7 +89,7 @@ bool buffer_draw_line(
 
 bool buffer_draw_bitmap(
   uint8_t x, uint8_t y,
-  const uint8_t *bitmap, 
+  const uint8_t *bitmap,
   uint8_t w, uint8_t h, PixelValue value,
   displaybuffer_t* buffer) {
 
@@ -103,7 +103,7 @@ bool buffer_draw_bitmap(
         byte >>= 1;
       } else {
         byte = bitmap[ypos * byte_width + xpos / 8];
-      } 
+      }
       if(byte & 0x01) {
         collision_free &= buffer_draw_pixel(x+xpos, y+ypos, value, buffer);
       }
@@ -209,7 +209,7 @@ bool buffer_fill_triangle(
 bool buffer_fill_rectangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
  PixelValue value, displaybuffer_t* buffer) {
   int16_t x_low = x0 <= x1 ? x0 : x1;
-  int16_t x_high = x0 <= x1 ? x1 : x0;  
+  int16_t x_high = x0 <= x1 ? x1 : x0;
   bool collision_free = true;
   for (int16_t i = x_low; i <= x_high; i++) {
     collision_free &= buffer_draw_line(i, y0, i, y1, value, buffer);

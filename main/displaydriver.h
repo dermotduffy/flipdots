@@ -13,7 +13,7 @@ void displaydriver_testpattern();
 
 bool buffer_commit_drawing();
 
-extern SemaphoreHandle_t buffer_staging_mutex; 
+extern SemaphoreHandle_t buffer_staging_mutex;
 
 extern displaybuffer_t buffer_live;    // On the display currently.
 extern displaybuffer_t buffer_prelive; // Being written to the display.

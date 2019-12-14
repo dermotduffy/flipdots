@@ -27,7 +27,7 @@ int mode_notification_draw() {
     case NOTIFICATION_ICON_DOORBELL:
       bitmap = graphics_bell_bits;
   }
-  
+
   if (bitmap != NULL) {
     buffer_draw_bitmap(0, 0, bitmap, DISPLAY_WIDTH, DISPLAY_HEIGHT, PIXEL_YELLOW, &buffer_draw);
   }

@@ -45,7 +45,7 @@ void create_starter_snake() {
     mode_snake_state.snake.nodes[i].x = SNAKE_START_X + i;
     mode_snake_state.snake.nodes[i].y = SNAKE_START_Y;
   }
- 
+
   mode_snake_state.snake.snake_tail_index = 0;
   mode_snake_state.snake.snake_head_index = SNAKE_START_LEN - 1;
   mode_snake_state.snake.moving_direction = SNAKE_EAST;
@@ -74,7 +74,7 @@ void draw_food_to_displaybuffer(displaybuffer_t* buffer) {
 
 void draw_snake_to_displaybuffer(displaybuffer_t* buffer) {
   if (mode_snake_state.snake.snake_tail_index < 0 ||
-      mode_snake_state.snake.snake_head_index < 0) {  
+      mode_snake_state.snake.snake_head_index < 0) {
     return;
   }
 
@@ -87,7 +87,7 @@ void draw_snake_to_displaybuffer(displaybuffer_t* buffer) {
       break;
     }
     i = (i + 1) % SNAKE_MAX_LEN;
-  } 
+  }
 }
 
 // Must not be called on a full board (i.e. there must be
@@ -174,7 +174,7 @@ int mode_snake_draw() {
 
   if (new_head.x == mode_snake_state.food.x &&
       new_head.y == mode_snake_state.food.y) {
-    snake->nodes_to_grow += SNAKE_FOOD_GROWTH; 
+    snake->nodes_to_grow += SNAKE_FOOD_GROWTH;
     mode_snake_state.food.x = -1;
     mode_snake_state.food.y = -1;
   } else if (buffer_get_pixel(new_head.x, new_head.y, &buffer_snake) == PIXEL_YELLOW) {
@@ -182,7 +182,7 @@ int mode_snake_draw() {
     snake->flash_countdown = SNAKE_FLASH_COUNT;
     return SNAKE_TIME_DELAY_BETWEEN_DRAWS_MS;
   }
-      
+
   // Add node to the front.
   int new_head_index = (snake->snake_head_index + 1) % SNAKE_MAX_LEN;
   snake->nodes[new_head_index] = new_head;

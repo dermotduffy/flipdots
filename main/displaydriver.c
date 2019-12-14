@@ -83,7 +83,7 @@ displaydriver_worker_config_t displaydriver_worker_bot_config = {
   .dst = &buffer_live,
 };
 
-SemaphoreHandle_t buffer_staging_mutex; 
+SemaphoreHandle_t buffer_staging_mutex;
 
 displaybuffer_t buffer_live;
 displaybuffer_t buffer_prelive;
@@ -139,7 +139,7 @@ void task_displaydriver_update() {
 
       // On the first run force write all bits to ensure physical display
       // resembles the internal live displaybuffer.
-      EventBits_t bits;      
+      EventBits_t bits;
       if (first_run) {
         bits = DISPLAY_EVENT_WORKER_TOP_ACTIVATE_FULL_BIT |
                DISPLAY_EVENT_WORKER_BOT_ACTIVATE_FULL_BIT;
@@ -218,7 +218,7 @@ void task_displaydriver_update_worker(void* pvParameters) {
         }
       }
     }
-  
+
     xEventGroupSetBits(*(config->event_group), config->complete_bit);
   }
 }
