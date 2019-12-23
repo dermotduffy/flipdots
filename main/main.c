@@ -12,6 +12,7 @@
 #include "displaydriver.h"
 #include "touchpad.h"
 #include "orchestrator.h"
+#include "status-led.h"
 
 const static char *LOG_TAG = "flipdots";
 
@@ -20,6 +21,9 @@ const static char *LOG_TAG = "flipdots";
 // ****
 enum mgos_app_init_result mgos_app_init(void) {
   ESP_LOGI(LOG_TAG, "Application start ...");
+
+  status_led_setup();
+  status_led_set(true);
 
   displaydriver_setup();
   displaydriver_start();

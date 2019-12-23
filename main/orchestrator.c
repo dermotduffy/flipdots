@@ -296,7 +296,7 @@ void orchestrator_setup() {
   mode_snake_setup();
 
   mgos_blynk_init();
-  blynk_set_handler(blynk_event, "foo");
+  blynk_set_handler(blynk_event, NULL);
 }
 
 void orchestrator_start() {
@@ -314,7 +314,7 @@ void orchestrator_touchpad_input(bool pad0, bool pad1) {
   if (!pad0 && !pad1) {
     return;
   }
-
+  ESP_LOGI(LOG_TAG, "Orchestrator touchpad wake: %i,%i", pad0, pad1);
   mutex_lock(orchestrator_mutex);
   if (pad0 && pad1) {
     enum OrchestratorMode mode = orchestrator_mode + 1;
