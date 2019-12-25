@@ -111,7 +111,27 @@ bool buffer_draw_bitmap(
   }
   return collision_free;
 }
+bool buffer_draw_bitmap_rgb(
+  uint8_t x, uint8_t y,
+  const uint8_t *bitmap,
+  uint8_t w, uint8_t h, PixelValue value,
+  displaybuffer_t* buffer) {
 
+  uint8_t xpos, ypos;
+  const uint8_t* bytes;
+
+  bool collision_free = true;
+  for(ypos = 0; ypos < h; ypos++) {
+    for(xpos = 0; xpos < w; xpos++) {
+      bytes = bitmap + (3*(ypos * w + xpos));
+
+      if (bytes[0] >= 0x80 || bytes[1] >= 0x80 || bytes[2] >= 0x80) {
+        collision_free &= buffer_draw_pixel(x+xpos, y+ypos, value, buffer);
+      }
+    }
+  }
+  return collision_free;
+}
 bool buffer_draw_triangle(
     int16_t x0, int16_t y0,
     int16_t x1, int16_t y1,

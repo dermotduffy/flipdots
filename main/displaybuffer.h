@@ -73,7 +73,14 @@ bool buffer_tdf_draw_string_centre(
 bool buffer_draw_line(
     uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, PixelValue value,
     displaybuffer_t* buffer);
+// Draw a bitmap, 1 byte per pixel, 0x1 is on, 0x0 is off.
 bool buffer_draw_bitmap(
+    uint8_t x, uint8_t y,
+    const uint8_t *bitmap,
+    uint8_t w, uint8_t h, PixelValue value,
+    displaybuffer_t* buffer);
+// Draw a bitmap, 3 byte per pixel (>127 in any channel is on).
+bool buffer_draw_bitmap_rgb(
     uint8_t x, uint8_t y,
     const uint8_t *bitmap,
     uint8_t w, uint8_t h, PixelValue value,
