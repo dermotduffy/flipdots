@@ -20,11 +20,10 @@ sources:
   - main
   - components/fonts
   - components/fonts-tdf
-  - components/graphics
 
 # List of dirs. Files from these dirs will be copied to the device filesystem
 filesystem:
-  - fs
+  - fs/icons
 
 # Custom configuration entries, settable via "device configuration"
 # Below is a custom firmware configuration example.

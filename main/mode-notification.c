@@ -5,15 +5,11 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
+#include "mgos_bmp_loader.h"
 
 #include "displaydriver.h"
 #include "mode-notification.h"
 #include "mutex-util.h"
-
-#include "graphics_bell.xbm"
-#include "dishwasher.xbm"
-#include "tumble_dryer.xbm"
-#include "washing_machine.xbm"
 
 ModeNotificationParameters mode_notification_params;
 
@@ -26,25 +22,43 @@ int mode_notification_draw() {
 
   buffer_wipe(&buffer_draw);
 
+  char* filename = NULL;
   const uint8_t* bitmap = NULL;
+
   switch (mode_notification_params.notification_icon) {
     case NOTIFICATION_ICON_DOORBELL:
-      bitmap = graphics_bell_bits;
+      filename = "doorbell.bmp";
       break;
     case NOTIFICATION_ICON_DISHWASHER:
-      bitmap = dishwasher_bits;
+      filename = "dishwasher.bmp";
       break;
     case NOTIFICATION_ICON_TUMBLE_DRYER:
-      bitmap = tumble_dryer_bits;
+      filename = "tumble-dryer.bmp";
       break;
     case NOTIFICATION_ICON_WASHING_MACHINE:
-      bitmap = washing_machine_bits;
+      filename = "washing-machine.bmp";
       break;
+    default:
+      ESP_LOGE(LOG_TAG, "Unknown notification icon: %i", mode_notification_params.notification_icon);
+      return 0;
   }
 
-  if (bitmap != NULL) {
-    buffer_draw_bitmap(0, 0, bitmap, DISPLAY_WIDTH, DISPLAY_HEIGHT, PIXEL_YELLOW, &buffer_draw);
+  bmpread_t* bmp = mgos_bmp_loader_create();
+  if (!mgos_bmp_loader_load(
+          bmp, filename,
+          BMPREAD_TOP_DOWN | BMPREAD_BYTE_ALIGN | BMPREAD_ANY_SIZE)) {
+    ESP_LOGE(LOG_TAG, "Couldn't open bitmap file: %s", filename);
+    return 0;
   }
+
+  bitmap = mgos_bmp_loader_get_data(bmp);
+
+  if (bitmap != NULL) {
+    buffer_draw_bitmap_rgb(0, 0, bitmap, DISPLAY_WIDTH, DISPLAY_HEIGHT, PIXEL_YELLOW, &buffer_draw);
+  }
+
+  mgos_bmp_loader_free(bmp);
+  bmp = NULL;
 
   if (mode_notification_params.invert) {
     buffer_inverse(&buffer_draw);
