@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <string.h>
 
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -10,6 +11,9 @@
 #include "mutex-util.h"
 
 #include "graphics_bell.xbm"
+#include "dishwasher.xbm"
+#include "tumble_dryer.xbm"
+#include "washing_machine.xbm"
 
 ModeNotificationParameters mode_notification_params;
 
@@ -26,6 +30,16 @@ int mode_notification_draw() {
   switch (mode_notification_params.notification_icon) {
     case NOTIFICATION_ICON_DOORBELL:
       bitmap = graphics_bell_bits;
+      break;
+    case NOTIFICATION_ICON_DISHWASHER:
+      bitmap = dishwasher_bits;
+      break;
+    case NOTIFICATION_ICON_TUMBLE_DRYER:
+      bitmap = tumble_dryer_bits;
+      break;
+    case NOTIFICATION_ICON_WASHING_MACHINE:
+      bitmap = washing_machine_bits;
+      break;
   }
 
   if (bitmap != NULL) {
@@ -60,4 +74,21 @@ bool mode_notification_set_icon(int icon) {
   mode_notification_params.invert = false;
   mode_notification_params.draws = 0;
   return true;
+}
+
+bool mode_notification_get_icon_by_str(char* str, enum NotificationIcon* icon) {
+  if (strcmp(str, NOTIFICATION_TAG_DOORBELL) == 0) {
+    *icon = NOTIFICATION_ICON_DOORBELL;
+    return true;
+  } else if (strcmp(str, NOTIFICATION_TAG_DISHWASHER) == 0) {
+    *icon = NOTIFICATION_ICON_DISHWASHER;
+    return true;
+  } else if (strcmp(str, NOTIFICATION_TAG_TUMBLE_DRYER) == 0) {
+    *icon = NOTIFICATION_ICON_TUMBLE_DRYER;
+    return true;
+  } else if (strcmp(str, NOTIFICATION_TAG_WASHING_MACHINE) == 0) {
+    *icon = NOTIFICATION_ICON_WASHING_MACHINE;
+    return true;
+  }
+  return false;
 }

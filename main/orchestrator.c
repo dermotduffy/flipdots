@@ -5,7 +5,9 @@
 #include "freertos/event_groups.h"
 #include "mgos.h"
 #include "mgos_blynk.h"
+#include "mgos_mqtt.h"
 #include "mgos_rpc.h"
+#include "mgos_sys_config.h"
 
 #include "mode-bounce.h"
 #include "mode-clock.h"
@@ -44,6 +46,8 @@ enum OrchestratorMode {
 #define BLYNK_PIN_DIRECTION_Y 3
 
 #define BLYNK_DIRECTION_CUTOFF 0.5
+
+#define MQTT_BUF_SIZE 50
 
 const static char *LOG_TAG = "orchestrator";
 
@@ -273,6 +277,60 @@ void blynk_event(
   }
 }
 
+// Expects a JSON list of tags, which is searched sequentially for the first
+// one that has a matching notification icon.
+void mqtt_scan_payload(const char *str, int len, void *user_data) {
+  struct json_token t;
+  int i;
+  char buf[MQTT_BUF_SIZE+1];
+
+  enum NotificationIcon icon;
+  for (i = 0; json_scanf_array_elem(str, len, "", i, &t) > 0; i++) {
+    int len = t.len > MQTT_BUF_SIZE ? MQTT_BUF_SIZE : t.len;
+    strncpy(buf, t.ptr, len);
+    buf[len] = '\0';
+
+    if (mode_notification_get_icon_by_str(buf, &icon)) {
+      mutex_lock(orchestrator_mutex);
+      mode_notification_set_icon(icon);
+      orchestrator_mode = ORCHESTRATOR_MODE_NOTIFICATION;
+      mutex_unlock(orchestrator_mutex);
+      return;
+    }
+  }
+}
+
+void orchestrator_mqtt_handler(
+    struct mg_connection *c, int ev, void *p, void *user_data) {
+  struct mg_mqtt_message *msg = (struct mg_mqtt_message *) p;
+
+  if (ev == MG_EV_MQTT_CONNACK) {
+    if (mgos_sys_config_get_mqtt_sub() == NULL) {
+      LOG(LL_ERROR, ("MQTT: Topic not set. Run 'mos config-set mqtt.sub=...'"));
+    } else {
+      struct mg_mqtt_topic_expression te = {
+          .topic = mgos_sys_config_get_mqtt_sub(),
+          .qos = 1,
+      };
+      uint16_t sub_id = mgos_mqtt_get_packet_id();
+      LOG(LL_INFO, (
+          "MQTT: Subscribing to '%s' (QoS %u, id %u)", te.topic, te.qos, sub_id));
+      mg_mqtt_subscribe(c, &te, 1, sub_id);
+    }
+  } else if (ev == MG_EV_MQTT_SUBACK) {
+    LOG(LL_INFO, ("MQTT: Subscription %u acknowledged", msg->message_id));
+  } else if (ev == MG_EV_MQTT_PUBLISH) {
+    struct mg_str *s = &msg->payload;
+    LOG(LL_INFO, ("MQTT: Got data: %.*s", (int) s->len, s->p));
+
+    // Our MQTT sub is @ QoS 1: Need to ACK the message.
+    mg_mqtt_puback(c, msg->message_id);
+    if (json_scanf(s->p, s->len, "[%M]", mqtt_scan_payload, NULL) != 1) {
+      LOG(LL_ERROR, ("MQTT: Could not JSON parse data: %.*s", (int) s->len, s->p));
+    }
+  }
+}
+
 void orchestrator_setup() {
   orchestrator_event_group = xEventGroupCreate();
   configASSERT(orchestrator_event_group != NULL);
@@ -295,8 +353,12 @@ void orchestrator_setup() {
   mode_bounce_setup();
   mode_snake_setup();
 
+  // Blynk init.
   mgos_blynk_init();
   blynk_set_handler(blynk_event, NULL);
+
+  // MQTT init.
+  mgos_mqtt_add_global_handler(orchestrator_mqtt_handler, NULL);
 }
 
 void orchestrator_start() {
