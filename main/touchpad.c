@@ -103,12 +103,11 @@ void touchpad_setup() {
     touch_pad_config(touchpads[i], TOUCH_THRESH_NO_USE);
   }
 
-  touch_pad_filter_start(TOUCHPAD_FILTER_TOUCH_PERIOD);
   vTaskDelay(TOUCHPAD_FILTER_START_MS / portTICK_PERIOD_MS);
 
   uint16_t touch_value;
   for (int i = 0; i < NUM_TOUCHPADS; ++i) {
-    touch_pad_read_filtered(touchpads[i], &touch_value);
+    touch_pad_read(touchpads[i], &touch_value);
     ESP_LOGD(TAG, "touchpads: touch pad [%d] init val is %d", touchpads[i], touch_value);
     ESP_ERROR_CHECK(touch_pad_set_thresh(touchpads[i], touch_value * 2 / 3));
   }
