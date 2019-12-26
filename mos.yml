@@ -30,7 +30,7 @@ filesystem:
 # Uncomment and modify according to your needs:
 
 config_schema:
-  - ["mqtt.sub", "s", "", {"title": "MQTT topic to subscribe to"}]
+  - ["flipdots.notification_mqtt_sub", "s", "", {"title": "Notification mode: MQTT topic to subscribe to"}]
 
 # config_schema:
 #  - ["my_app", "o", {title: "My app custom settings"}]

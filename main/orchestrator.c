@@ -146,19 +146,21 @@ static void rpc_notification_handler(
   struct json_out out = JSON_OUT_MBUF(&fb);
   mbuf_init(&fb, RPC_MBUF_SIZE);
 
-  int icon = 0;
+  char* icon = NULL;
   if (json_scanf(args.p, args.len, ri->args_fmt, &icon) != 1) {
     json_printf(&out, "{error: %Q}", "icon is required");
   } else {
     mutex_lock(orchestrator_mutex);
     bool icon_success = mode_notification_set_icon(icon);
-    orchestrator_mode = ORCHESTRATOR_MODE_NOTIFICATION;
+    if (icon_success) {
+      orchestrator_mode = ORCHESTRATOR_MODE_NOTIFICATION;
+    }
     mutex_unlock(orchestrator_mutex);
 
     if (!icon_success) {
       json_printf(&out, "{error: %Q}", "Invalid notification icon");
     } else {
-      json_printf(&out, "{icon: %d}", icon);
+      json_printf(&out, "{icon: %Q}", icon);
       xEventGroupSetBits(orchestrator_event_group, ORCHESTRATOR_EVENT_WAKEUP_BIT);
     }
   }
@@ -180,7 +182,7 @@ void set_orchestrator_mode_locked(int value) {
   if (orchestrator_mode == ORCHESTRATOR_MODE_SNAKE) {
     mode_snake_reset_game();
   } else if (orchestrator_mode == ORCHESTRATOR_MODE_NOTIFICATION) {
-    mode_notification_set_icon(NOTIFICATION_ICON_DEFAULT);
+    mode_notification_set_icon(NOTIFICATION_DEFAULT_ICON);
   }
 }
 
@@ -277,39 +279,17 @@ void blynk_event(
   }
 }
 
-// Expects a JSON list of tags, which is searched sequentially for the first
-// one that has a matching notification icon.
-void mqtt_scan_payload(const char *str, int len, void *user_data) {
-  struct json_token t;
-  int i;
-  char buf[MQTT_BUF_SIZE+1];
-
-  enum NotificationIcon icon;
-  for (i = 0; json_scanf_array_elem(str, len, "", i, &t) > 0; i++) {
-    int len = t.len > MQTT_BUF_SIZE ? MQTT_BUF_SIZE : t.len;
-    strncpy(buf, t.ptr, len);
-    buf[len] = '\0';
-
-    if (mode_notification_get_icon_by_str(buf, &icon)) {
-      mutex_lock(orchestrator_mutex);
-      mode_notification_set_icon(icon);
-      orchestrator_mode = ORCHESTRATOR_MODE_NOTIFICATION;
-      mutex_unlock(orchestrator_mutex);
-      return;
-    }
-  }
-}
 
 void orchestrator_mqtt_handler(
     struct mg_connection *c, int ev, void *p, void *user_data) {
   struct mg_mqtt_message *msg = (struct mg_mqtt_message *) p;
 
   if (ev == MG_EV_MQTT_CONNACK) {
-    if (mgos_sys_config_get_mqtt_sub() == NULL) {
+    if (mgos_sys_config_get_flipdots_notification_mqtt_sub() == NULL) {
       LOG(LL_ERROR, ("MQTT: Topic not set. Run 'mos config-set mqtt.sub=...'"));
     } else {
       struct mg_mqtt_topic_expression te = {
-          .topic = mgos_sys_config_get_mqtt_sub(),
+          .topic = mgos_sys_config_get_flipdots_notification_mqtt_sub(),
           .qos = 1,
       };
       uint16_t sub_id = mgos_mqtt_get_packet_id();
@@ -325,9 +305,16 @@ void orchestrator_mqtt_handler(
 
     // Our MQTT sub is @ QoS 1: Need to ACK the message.
     mg_mqtt_puback(c, msg->message_id);
-    if (json_scanf(s->p, s->len, "[%M]", mqtt_scan_payload, NULL) != 1) {
+    char* notification_icon = NULL;
+    if (json_scanf(s->p, s->len, "{ icon:%Q }", &notification_icon) != 1) {
       LOG(LL_ERROR, ("MQTT: Could not JSON parse data: %.*s", (int) s->len, s->p));
+      return;
     }
+    mutex_lock(orchestrator_mutex);
+    if (mode_notification_set_icon(notification_icon)) {
+      orchestrator_mode = ORCHESTRATOR_MODE_NOTIFICATION;
+    }
+    mutex_unlock(orchestrator_mutex);
   }
 }
 
@@ -342,7 +329,7 @@ void orchestrator_setup() {
       "FlipDot.Clock", "{style: %d}",
       rpc_clock_handler, NULL);
   mg_rpc_add_handler(mgos_rpc_get_global(),
-      "FlipDot.Notification", "{icon: %d}",
+      "FlipDot.Notification", "{icon: %Q}",
       rpc_notification_handler, NULL);
 
   orchestrator_mode = ORCHESTRATOR_MODE_DEFAULT;
