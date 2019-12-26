@@ -5,7 +5,6 @@
 #include "freertos/event_groups.h"
 #include "mgos.h"
 #include "mgos_blynk.h"
-#include "mgos_rpc.h"
 #include "mgos_sys_config.h"
 
 #include "mode-bounce.h"
@@ -37,8 +36,6 @@ enum OrchestratorMode {
 #define ORCHESTRATOR_MODE_MAX       ORCHESTRATOR_MODE_SNAKE
 #define ORCHESTRATOR_MODE_DEFAULT   ORCHESTRATOR_MODE_CLOCK
 
-#define RPC_MBUF_SIZE 50
-
 #define BLYNK_PIN_MODE        0
 #define BLYNK_PIN_CLOCK_STYLE 1
 #define BLYNK_PIN_DIRECTION_X 2
@@ -50,76 +47,6 @@ enum OrchestratorMode {
 
 void set_orchestrator_mode_locked(int value);
 const char* LOG_TAG  = "orchestator";
-
-// ==========
-// ** RPC **
-// ==========
-
-static void rpc_clock_handler(
-    struct mg_rpc_request_info *ri, void *cb_arg,
-    struct mg_rpc_frame_info *fi, struct mg_str args) {
-  struct mbuf fb;
-  struct json_out out = JSON_OUT_MBUF(&fb);
-  mbuf_init(&fb, RPC_MBUF_SIZE);
-
-  int style = 0;
-  if (json_scanf(args.p, args.len, ri->args_fmt, &style) != 1) {
-    json_printf(&out, "{error: %Q}", "style is required");
-  } else {
-    mutex_lock(orchestrator_mutex);
-    bool style_success = mode_clock_set_style(style);
-    orchestrator_mode = ORCHESTRATOR_MODE_CLOCK;
-    mutex_unlock(orchestrator_mutex);
-
-    if (!style_success) {
-      json_printf(&out, "{error: %Q}", "Invalid clock style");
-    } else {
-      json_printf(&out, "{style: %d}", style);
-      xEventGroupSetBits(orchestrator_event_group, ORCHESTRATOR_EVENT_WAKEUP_BIT);
-    }
-  }
-
-  mg_rpc_send_responsef(ri, "%.*s", fb.len, fb.buf);
-
-  ri = NULL;
-  mbuf_free(&fb);
-  (void) cb_arg;
-  (void) fi;
-}
-
-static void rpc_notification_handler(
-    struct mg_rpc_request_info *ri, void *cb_arg,
-    struct mg_rpc_frame_info *fi, struct mg_str args) {
-  struct mbuf fb;
-  struct json_out out = JSON_OUT_MBUF(&fb);
-  mbuf_init(&fb, RPC_MBUF_SIZE);
-
-  char* icon = NULL;
-  if (json_scanf(args.p, args.len, ri->args_fmt, &icon) != 1) {
-    json_printf(&out, "{error: %Q}", "icon is required");
-  } else {
-    mutex_lock(orchestrator_mutex);
-    bool icon_success = mode_notification_set_icon(icon);
-    if (icon_success) {
-      orchestrator_mode = ORCHESTRATOR_MODE_NOTIFICATION;
-    }
-    mutex_unlock(orchestrator_mutex);
-
-    if (!icon_success) {
-      json_printf(&out, "{error: %Q}", "Invalid notification icon");
-    } else {
-      json_printf(&out, "{icon: %Q}", icon);
-      xEventGroupSetBits(orchestrator_event_group, ORCHESTRATOR_EVENT_WAKEUP_BIT);
-    }
-  }
-
-  mg_rpc_send_responsef(ri, "%.*s", fb.len, fb.buf);
-
-  ri = NULL;
-  mbuf_free(&fb);
-  (void) cb_arg;
-  (void) fi;
-}
 
 // ===========
 // ** Blynk **
@@ -267,13 +194,6 @@ void orchestrator_setup() {
   orchestrator_mutex = xSemaphoreCreateMutex();
   configASSERT(orchestrator_mutex != NULL);
 
-  mg_rpc_add_handler(mgos_rpc_get_global(),
-      "FlipDots.Clock", "{style: %d}",
-      rpc_clock_handler, NULL);
-  mg_rpc_add_handler(mgos_rpc_get_global(),
-      "FlipDots.Notification", "{icon: %Q}",
-      rpc_notification_handler, NULL);
-
   orchestrator_mode = ORCHESTRATOR_MODE_DEFAULT;
 
   // Setup mode tasks.
@@ -372,6 +292,20 @@ bool orchestrator_activate_notification(const char* icon) {
   mutex_lock(orchestrator_mutex);
   if (mode_notification_set_icon(icon)) {
     orchestrator_mode = ORCHESTRATOR_MODE_NOTIFICATION;
+    xEventGroupSetBits(orchestrator_event_group, ORCHESTRATOR_EVENT_WAKEUP_BIT);
+  } else {
+    success = false;
+  }
+  mutex_unlock(orchestrator_mutex);
+  return success;
+}
+
+bool orchestrator_activate_clock(ClockStyle style) {
+  bool success = true;
+  mutex_lock(orchestrator_mutex);
+
+  if (mode_clock_set_style(style)) {
+    orchestrator_mode = ORCHESTRATOR_MODE_CLOCK;
     xEventGroupSetBits(orchestrator_event_group, ORCHESTRATOR_EVENT_WAKEUP_BIT);
   } else {
     success = false;
