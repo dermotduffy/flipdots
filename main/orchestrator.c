@@ -51,61 +51,53 @@ enum OrchestratorMode {
 
 const static char *LOG_TAG = "orchestrator";
 
-void task_orchestrator() {
-  int pause_ms;
+void set_orchestrator_mode_locked(int value);
 
-  while (true) {
-    mutex_lock(orchestrator_mutex);
-    switch (orchestrator_mode) {
-      case ORCHESTRATOR_MODE_CLOCK:
-        pause_ms = mode_clock_draw();
-        break;
-      case ORCHESTRATOR_MODE_NOTIFICATION:
-        pause_ms = mode_notification_draw();
-        break;
-      case ORCHESTRATOR_MODE_BOUNCE:
-        pause_ms = mode_bounce_draw();
-        break;
-      case ORCHESTRATOR_MODE_SNAKE:
-        pause_ms = mode_snake_draw();
-        break;
-      default:
-        ESP_LOGE(LOG_TAG, "Invalid mode: %i", orchestrator_mode);
-        pause_ms = TIME_DELAY_ORCHESTRATOR_ERROR_MS;
-    }
+// ==========
+// ** MQTT **
+// ==========
 
-    if (pause_ms == 0) {
-      orchestrator_mode = ORCHESTRATOR_MODE_DEFAULT;
-      mutex_unlock(orchestrator_mutex);
-      continue;
+void orchestrator_mqtt_handler(
+    struct mg_connection *c, int ev, void *p, void *user_data) {
+  struct mg_mqtt_message *msg = (struct mg_mqtt_message *) p;
+
+  if (ev == MG_EV_MQTT_CONNACK) {
+    if (mgos_sys_config_get_flipdots_notification_mqtt_sub() == NULL) {
+      LOG(LL_ERROR, ("MQTT: Topic not set. Run 'mos config-set mqtt.sub=...'"));
     } else {
-      mutex_unlock(orchestrator_mutex);
+      struct mg_mqtt_topic_expression te = {
+          .topic = mgos_sys_config_get_flipdots_notification_mqtt_sub(),
+          .qos = 1,
+      };
+      uint16_t sub_id = mgos_mqtt_get_packet_id();
+      LOG(LL_INFO, (
+          "MQTT: Subscribing to '%s' (QoS %u, id %u)", te.topic, te.qos, sub_id));
+      mg_mqtt_subscribe(c, &te, 1, sub_id);
     }
+  } else if (ev == MG_EV_MQTT_SUBACK) {
+    LOG(LL_INFO, ("MQTT: Subscription %u acknowledged", msg->message_id));
+  } else if (ev == MG_EV_MQTT_PUBLISH) {
+    struct mg_str *s = &msg->payload;
+    LOG(LL_INFO, ("MQTT: Got data: %.*s", (int) s->len, s->p));
 
-    int pause_ticks = pause_ms / portTICK_PERIOD_MS;
-    int paused_ticks = 0;
-
-    while (true) {
-      TickType_t tick_start = xTaskGetTickCount();
-      if (xEventGroupWaitBits(
-          orchestrator_event_group,
-          ORCHESTRATOR_EVENT_WAKEUP_BIT,
-          pdTRUE,   // Clear on exit.
-          pdTRUE,   // Wait for all bits.
-          pause_ticks - paused_ticks) & ORCHESTRATOR_EVENT_WAKEUP_BIT) {
-        break;
-      }
-      paused_ticks += (xTaskGetTickCount() - tick_start);
-      if (paused_ticks >= pause_ticks) {
-        break;
-      }
+    // Our MQTT sub is @ QoS 1: Need to ACK the message.
+    mg_mqtt_puback(c, msg->message_id);
+    char* notification_icon = NULL;
+    if (json_scanf(s->p, s->len, "{ icon:%Q }", &notification_icon) != 1) {
+      LOG(LL_ERROR, ("MQTT: Could not JSON parse data: %.*s", (int) s->len, s->p));
+      return;
     }
+    mutex_lock(orchestrator_mutex);
+    if (mode_notification_set_icon(notification_icon)) {
+      orchestrator_mode = ORCHESTRATOR_MODE_NOTIFICATION;
+    }
+    mutex_unlock(orchestrator_mutex);
   }
-
-  // Never reached.
-  vTaskDelete(NULL);
-  return;
 }
+
+// ==========
+// ** RPC **
+// ==========
 
 static void rpc_clock_handler(
     struct mg_rpc_request_info *ri, void *cb_arg,
@@ -173,18 +165,9 @@ static void rpc_notification_handler(
   (void) fi;
 }
 
-// orchestrator mutex needs to be held.
-void set_orchestrator_mode_locked(int value) {
-  if (value < ORCHESTRATOR_MODE_MIN || value > ORCHESTRATOR_MODE_MAX) {
-    return;
-  }
-  orchestrator_mode = value;
-  if (orchestrator_mode == ORCHESTRATOR_MODE_SNAKE) {
-    mode_snake_reset_game();
-  } else if (orchestrator_mode == ORCHESTRATOR_MODE_NOTIFICATION) {
-    mode_notification_set_icon(NOTIFICATION_DEFAULT_ICON);
-  }
-}
+// ===========
+// ** Blynk **
+// ===========
 
 void blynk_event_mode(int value) {
   mutex_lock(orchestrator_mutex);
@@ -279,85 +262,9 @@ void blynk_event(
   }
 }
 
-
-void orchestrator_mqtt_handler(
-    struct mg_connection *c, int ev, void *p, void *user_data) {
-  struct mg_mqtt_message *msg = (struct mg_mqtt_message *) p;
-
-  if (ev == MG_EV_MQTT_CONNACK) {
-    if (mgos_sys_config_get_flipdots_notification_mqtt_sub() == NULL) {
-      LOG(LL_ERROR, ("MQTT: Topic not set. Run 'mos config-set mqtt.sub=...'"));
-    } else {
-      struct mg_mqtt_topic_expression te = {
-          .topic = mgos_sys_config_get_flipdots_notification_mqtt_sub(),
-          .qos = 1,
-      };
-      uint16_t sub_id = mgos_mqtt_get_packet_id();
-      LOG(LL_INFO, (
-          "MQTT: Subscribing to '%s' (QoS %u, id %u)", te.topic, te.qos, sub_id));
-      mg_mqtt_subscribe(c, &te, 1, sub_id);
-    }
-  } else if (ev == MG_EV_MQTT_SUBACK) {
-    LOG(LL_INFO, ("MQTT: Subscription %u acknowledged", msg->message_id));
-  } else if (ev == MG_EV_MQTT_PUBLISH) {
-    struct mg_str *s = &msg->payload;
-    LOG(LL_INFO, ("MQTT: Got data: %.*s", (int) s->len, s->p));
-
-    // Our MQTT sub is @ QoS 1: Need to ACK the message.
-    mg_mqtt_puback(c, msg->message_id);
-    char* notification_icon = NULL;
-    if (json_scanf(s->p, s->len, "{ icon:%Q }", &notification_icon) != 1) {
-      LOG(LL_ERROR, ("MQTT: Could not JSON parse data: %.*s", (int) s->len, s->p));
-      return;
-    }
-    mutex_lock(orchestrator_mutex);
-    if (mode_notification_set_icon(notification_icon)) {
-      orchestrator_mode = ORCHESTRATOR_MODE_NOTIFICATION;
-    }
-    mutex_unlock(orchestrator_mutex);
-  }
-}
-
-void orchestrator_setup() {
-  orchestrator_event_group = xEventGroupCreate();
-  configASSERT(orchestrator_event_group != NULL);
-
-  orchestrator_mutex = xSemaphoreCreateMutex();
-  configASSERT(orchestrator_mutex != NULL);
-
-  mg_rpc_add_handler(mgos_rpc_get_global(),
-      "FlipDot.Clock", "{style: %d}",
-      rpc_clock_handler, NULL);
-  mg_rpc_add_handler(mgos_rpc_get_global(),
-      "FlipDot.Notification", "{icon: %Q}",
-      rpc_notification_handler, NULL);
-
-  orchestrator_mode = ORCHESTRATOR_MODE_DEFAULT;
-
-  // Setup mode tasks.
-  mode_clock_setup();
-  mode_notification_setup();
-  mode_bounce_setup();
-  mode_snake_setup();
-
-  // Blynk init.
-  mgos_blynk_init();
-  blynk_set_handler(blynk_event, NULL);
-
-  // MQTT init.
-  mgos_mqtt_add_global_handler(orchestrator_mqtt_handler, NULL);
-}
-
-void orchestrator_start() {
-  configASSERT(xTaskCreatePinnedToCore(
-      task_orchestrator,
-      TASK_ORCHESTRATOR_NAME,
-      TASK_ORCHESTRATOR_STACK_WORDS,
-      NULL,
-      TASK_ORCHESTRATOR_PRIORITY,
-      &task_orchestrator_handle,
-      tskNO_AFFINITY) == pdTRUE);
-}
+// ==============
+// ** Touchpad **
+// ==============
 
 void orchestrator_touchpad_input(bool pad0, bool pad1) {
   if (!pad0 && !pad1) {
@@ -391,4 +298,118 @@ void orchestrator_touchpad_input(bool pad0, bool pad1) {
     }
   }
   mutex_unlock(orchestrator_mutex);
+}
+
+// =======================
+// ** Orchestrator Task **
+// =======================
+
+void orchestrator_setup() {
+  orchestrator_event_group = xEventGroupCreate();
+  configASSERT(orchestrator_event_group != NULL);
+
+  orchestrator_mutex = xSemaphoreCreateMutex();
+  configASSERT(orchestrator_mutex != NULL);
+
+  mg_rpc_add_handler(mgos_rpc_get_global(),
+      "FlipDot.Clock", "{style: %d}",
+      rpc_clock_handler, NULL);
+  mg_rpc_add_handler(mgos_rpc_get_global(),
+      "FlipDot.Notification", "{icon: %Q}",
+      rpc_notification_handler, NULL);
+
+  orchestrator_mode = ORCHESTRATOR_MODE_DEFAULT;
+
+  // Setup mode tasks.
+  mode_clock_setup();
+  mode_notification_setup();
+  mode_bounce_setup();
+  mode_snake_setup();
+
+  // Blynk init.
+  mgos_blynk_init();
+  blynk_set_handler(blynk_event, NULL);
+
+  // MQTT init.
+  mgos_mqtt_add_global_handler(orchestrator_mqtt_handler, NULL);
+}
+
+void task_orchestrator() {
+  int pause_ms;
+
+  while (true) {
+    mutex_lock(orchestrator_mutex);
+    switch (orchestrator_mode) {
+      case ORCHESTRATOR_MODE_CLOCK:
+        pause_ms = mode_clock_draw();
+        break;
+      case ORCHESTRATOR_MODE_NOTIFICATION:
+        pause_ms = mode_notification_draw();
+        break;
+      case ORCHESTRATOR_MODE_BOUNCE:
+        pause_ms = mode_bounce_draw();
+        break;
+      case ORCHESTRATOR_MODE_SNAKE:
+        pause_ms = mode_snake_draw();
+        break;
+      default:
+        ESP_LOGE(LOG_TAG, "Invalid mode: %i", orchestrator_mode);
+        pause_ms = TIME_DELAY_ORCHESTRATOR_ERROR_MS;
+    }
+
+    if (pause_ms == 0) {
+      orchestrator_mode = ORCHESTRATOR_MODE_DEFAULT;
+      mutex_unlock(orchestrator_mutex);
+      continue;
+    } else {
+      mutex_unlock(orchestrator_mutex);
+    }
+
+    int pause_ticks = pause_ms / portTICK_PERIOD_MS;
+    int paused_ticks = 0;
+
+    while (true) {
+      TickType_t tick_start = xTaskGetTickCount();
+      if (xEventGroupWaitBits(
+          orchestrator_event_group,
+          ORCHESTRATOR_EVENT_WAKEUP_BIT,
+          pdTRUE,   // Clear on exit.
+          pdTRUE,   // Wait for all bits.
+          pause_ticks - paused_ticks) & ORCHESTRATOR_EVENT_WAKEUP_BIT) {
+        break;
+      }
+      paused_ticks += (xTaskGetTickCount() - tick_start);
+      if (paused_ticks >= pause_ticks) {
+        break;
+      }
+    }
+  }
+
+  // Never reached.
+  vTaskDelete(NULL);
+  return;
+}
+
+void orchestrator_start() {
+  configASSERT(xTaskCreatePinnedToCore(
+      task_orchestrator,
+      TASK_ORCHESTRATOR_NAME,
+      TASK_ORCHESTRATOR_STACK_WORDS,
+      NULL,
+      TASK_ORCHESTRATOR_PRIORITY,
+      &task_orchestrator_handle,
+      tskNO_AFFINITY) == pdTRUE);
+}
+
+// orchestrator mutex needs to be held.
+void set_orchestrator_mode_locked(int value) {
+  if (value < ORCHESTRATOR_MODE_MIN || value > ORCHESTRATOR_MODE_MAX) {
+    return;
+  }
+  orchestrator_mode = value;
+  if (orchestrator_mode == ORCHESTRATOR_MODE_SNAKE) {
+    mode_snake_reset_game();
+  } else if (orchestrator_mode == ORCHESTRATOR_MODE_NOTIFICATION) {
+    mode_notification_set_icon(NOTIFICATION_DEFAULT_ICON);
+  }
 }
