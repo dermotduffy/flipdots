@@ -13,6 +13,7 @@
 #include "touchpad.h"
 #include "orchestrator.h"
 #include "status-led.h"
+#include "mqtt.h"
 
 const static char *LOG_TAG = "flipdots";
 
@@ -40,6 +41,8 @@ enum mgos_app_init_result mgos_app_init(void) {
   // Setup & start the orchestrator.
   orchestrator_setup();
   orchestrator_start();
+
+  mqtt_setup();
 
   return MGOS_APP_INIT_SUCCESS;
 }
