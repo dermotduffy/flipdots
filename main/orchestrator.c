@@ -60,10 +60,10 @@ void orchestrator_touchpad_input(bool pad0, bool pad1) {
 
     switch (orchestrator_mode) {
       case ORCHESTRATOR_MODE_SNAKE:
-        mode_snake_rel_direction_input(pad0, pad1);
+        mode_snake_rel_direction_input(pad1, pad0);
         break;
       case ORCHESTRATOR_MODE_BOUNCE:
-        if (pad1) {
+        if (pad0) {
           coords.x = 1;
         } else {
           coords.x = -1;
