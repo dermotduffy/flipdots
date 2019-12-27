@@ -28,7 +28,7 @@
 #define PIN_BOT_SR2_LATCH                19  // Serial latch for SR2 (rows+data)
 #define PIN_BOT_ENABLE                   22
 
-#define FR2800_ENABLE_USEC               150 // Microsecond duration of enable pulse.
+#define FR2800_ENABLE_USEC               175 // Microsecond duration of enable pulse.
 
 // FP2800A addresses are shifted out as the esp32 does not have a sufficient
 // number of independent GPIO pins to drive 4 fully charged FP2800 chips.
