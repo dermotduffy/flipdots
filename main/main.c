@@ -19,6 +19,8 @@
 
 const static char *LOG_TAG = "flipdots";
 
+#define BOOT_PAUSE_MS         5000
+
 // ****
 // Main
 // ****
@@ -27,6 +29,10 @@ enum mgos_app_init_result mgos_app_init(void) {
 
   status_led_setup();
   status_led_set(true);
+
+  // Delay 5 seconds before activating the display to avoid large inrushes of
+  // current to the display at the ~same time as the esp32 is booting.
+  vTaskDelay(BOOT_PAUSE_MS / portTICK_PERIOD_MS);
 
   displaydriver_setup();
   displaydriver_start();
