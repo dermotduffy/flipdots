@@ -9,6 +9,7 @@
 
 #include "mgos.h"
 
+#include "blynk.h"
 #include "displaydriver.h"
 #include "touchpad.h"
 #include "mqtt.h"
@@ -45,6 +46,7 @@ enum mgos_app_init_result mgos_app_init(void) {
 
   mqtt_setup();
   rpc_setup();
+  blynk_setup();
 
   return MGOS_APP_INIT_SUCCESS;
 }
