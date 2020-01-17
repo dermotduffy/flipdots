@@ -54,5 +54,8 @@ enum mgos_app_init_result mgos_app_init(void) {
   rpc_setup();
   blynk_setup();
 
+  // Turn status LED off when initialization is complete.
+  status_led_set(false);
+
   return MGOS_APP_INIT_SUCCESS;
 }
